@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor — Trouvez votre médecin en Algérie{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero-section { position:relative; min-height:65vh; display:flex; align-items:center; overflow:hidden; background:#0f172a; }
+.hero-overlay { position:absolute; inset:0; background:linear-gradient(135deg,rgba(10,20,40,.82) 0%,rgba(10,20,40,.60) 50%,rgba(10,20,40,.45) 100%); z-index:2; transition:opacity 1.2s ease; }
+.hero-overlay.transparent { opacity:0 !important; }
+.hero-slides { position:absolute; inset:0; z-index:1; }
+.hero-slide { position:absolute; inset:0; background-size:cover; background-position:center; opacity:0; transition:opacity 1.2s ease-in-out; }
+.hero-slide.active { opacity:1; }
+.hero-slide-default { background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#0f172a 100%); opacity:1; }
+.hero-content { position:relative; z-index:3; width:100%; padding:5rem 0; }
+.slider-dots { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:4; }
+.slider-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.35); border:none; cursor:pointer; transition:all .3s; padding:0; }
+.slider-dot.active { background:white; width:24px; border-radius:4px; }
+.ad-corner-badge { position:absolute; top:16px; right:16px; background:rgba(0,0,0,.4); color:rgba(255,255,255,.6); font-size:10px; padding:2px 8px; border-radius:4px; z-index:4; }
+.ad-slide-link { position:absolute; bottom:60px; right:32px; z-index:4; opacity:0; transition:opacity .5s; }
+.ad-slide-link.visible { opacity:1; }
+
+/* Contact Section */
+.contact-section { background:linear-gradient(135deg,#0f172a 0%,#1a2f4a 100%); color:white; padding:5rem 0; }
+.contact-card { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:2rem; text-align:center; transition:all .3s; cursor:pointer; text-decoration:none; color:white; display:block; }
+.contact-card:hover { background:rgba(255,255,255,.14); transform:translateY(-4px); color:white; box-shadow:0 12px 30px rgba(0,0,0,.3); }
+.contact-card-icon { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.75rem; margin:0 auto 1rem; }
+.contact-whatsapp-icon { background:linear-gradient(135deg,#25D366,#128C7E); }
+.contact-phone-icon { background:linear-gradient(135deg,#0066ff,#0052cc); }
+.contact-email-icon { background:linear-gradient(135deg,#EA4335,#C5221F); }
+.contact-badge-pill { display:inline-flex; align-items:center; gap:.5rem; background:rgba(0,102,255,.2); border:1px solid rgba(0,102,255,.3); color:#93c5fd; border-radius:50px; padding:.3rem 1rem; font-size:.8rem; margin-bottom:1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% for ad in ads_top %}
+<div class="ad-banner" style="background:{{ ad.background_color }};color:{{ ad.text_color }}">
+  <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      {% if ad.image %}<img src="{{ ad.image.url }}" alt="" style="height:48px;border-radius:6px">{% endif %}
+      <div><div class="fw-semibold">{{ ad.title }}</div>{% if ad.description %}<small class="opacity-75">{{ ad.description }}</small>{% endif %}</div>
+    </div>
+    {% if ad.link_url %}<a href="{{ ad.link_url }}" class="btn btn-sm btn-outline-primary">{{ ad.link_text }}</a>{% endif %}
+  </div>
+</div>
+{% endfor %}
+
+<!-- ── Hero avec Slider ─────────────────────────────────── -->
+<section class="hero-section">
+  <div class="hero-slides">
+    <div class="hero-slide hero-slide-default" id="slide-default"></div>
+    {% if ads_slider %}{% for ad in ads_slider %}{% if ad.image %}
+    <div class="hero-slide" id="slide-{{ forloop.counter }}"
+         style="background-image:url('{{ ad.image.url }}')"
+         data-link="{{ ad.link_url }}" data-linktext="{{ ad.link_text }}"></div>
+    {% endif %}{% endfor %}{% endif %}
+  </div>
+
+  <div class="hero-overlay" id="heroOverlay"></div>
+  {% if ads_slider %}<div class="ad-corner-badge" id="adBadge" style="display:none">PUB</div>{% endif %}
+  <a href="#" class="ad-slide-link btn btn-sm btn-light" id="adLink" style="display:none" target="_blank"></a>
+
+  <div class="hero-content">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <div class="hero-badge mb-3">
+            <i class="bi bi-shield-check me-2"></i>
+            <span data-i18n="hero_badge">Plateforme Médicale de Confiance — Algérie</span>
+          </div>
+          <h1 class="hero-title">
+            <span data-i18n="hero_title1">Trouvez votre</span><br>
+            <span class="text-gradient" data-i18n="hero_title2">Médecin</span><br>
+            <span data-i18n="hero_title3">en Algérie</span>
+          </h1>
+          <p class="hero-subtitle" data-i18n="hero_sub">
+            Consultez des spécialistes dans votre wilaya, prenez rendez-vous en ligne.
+          </p>
+          <div class="d-flex flex-wrap gap-3 mt-4">
+            {% if user.is_authenticated %}
+              <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg"><i class="bi bi-grid me-2"></i><span data-i18n="hero_btn_dashboard">Mon Tableau de Bord</span></a>
+              <a href="{% url 'doctor_list' %}" class="btn btn-outline-light btn-lg"><i class="bi bi-search me-2"></i><span data-i18n="hero_btn_search">Chercher un Médecin</span></a>
+            {% else %}
+              <a href="{% url 'register_patient' %}" class="btn btn-primary btn-lg"><i class="bi bi-person-plus me-2"></i><span data-i18n="hero_btn_register">Créer un Compte</span></a>
+              <a href="{% url 'doctor_list' %}" class="btn btn-outline-light btn-lg"><i class="bi bi-search me-2"></i><span data-i18n="hero_btn_doctors">Voir les Médecins</span></a>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-lg-6 d-none d-lg-flex justify-content-center" id="heroIllustration">
+          <div class="hero-illustration">
+            <div class="hero-card card-1"><i class="bi bi-calendar2-check text-primary"></i><span data-i18n="card_rdv">Rendez-vous Confirmé</span></div>
+            <div class="hero-card card-2"><i class="bi bi-geo-alt-fill text-success"></i><span data-i18n="card_near">Médecin près de chez vous</span></div>
+            <div class="hero-icon-main"><i class="bi bi-heart-pulse"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if ads_slider %}<div class="slider-dots" id="sliderDots"></div>{% endif %}
+</section>
+
+<!-- ── Stats ──────────────────────────────────────────────── -->
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-number">{{ total_doctors }}</div><div class="stat-label" data-i18n="stat_doctors">Médecins Inscrits</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><div class="stat-number">{{ total_patients }}</div><div class="stat-label" data-i18n="stat_patients">Patients</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><div class="stat-number">{{ total_appointments }}</div><div class="stat-label" data-i18n="stat_appointments">Rendez-vous</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat-item"><div class="stat-number">69</div><div class="stat-label" data-i18n="stat_wilayas">Wilayas Couvertes</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Spécialités ─────────────────────────────────────────── -->
+<section class="py-5 mt-2">
+  <div class="container">
+    <div class="section-header text-center mb-5">
+      <h2 class="section-title" data-i18n="spec_title">Rechercher par Spécialité</h2>
+      <p class="section-subtitle" data-i18n="spec_sub">Trouvez le spécialiste qu'il vous faut</p>
+    </div>
+    <div class="row g-3">
+      {% for key, name in specializations %}
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'doctor_list' %}?specialization={{ key }}" class="specialty-card">
+          <div class="specialty-icon">
+            {% if key == 'cardiologie' %}<i class="bi bi-heart-pulse"></i>
+            {% elif key == 'dermatologie' %}<i class="bi bi-person-check"></i>
+            {% elif key == 'pediatrie' %}<i class="bi bi-emoji-smile"></i>
+            {% elif key == 'orthopedie' %}<i class="bi bi-person-walking"></i>
+            {% elif key == 'ophtalmologie' %}<i class="bi bi-eye"></i>
+            {% elif key == 'dentiste' %}<i class="bi bi-bandaid"></i>
+            {% elif key == 'psychiatrie' %}<i class="bi bi-brain"></i>
+            {% else %}<i class="bi bi-clipboard2-pulse"></i>{% endif %}
+          </div>
+          <span>{{ name }}</span>
+        </a>
+      </div>
+      {% endfor %}
+      <div class="col-6 col-md-4 col-lg-3">
+        <a href="{% url 'doctor_list' %}" class="specialty-card specialty-card-more">
+          <div class="specialty-icon"><i class="bi bi-grid"></i></div>
+          <span data-i18n="spec_all">Voir Tout</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Comment ça marche ───────────────────────────────────── -->
+<section class="how-it-works py-5">
+  <div class="container">
+    <div class="section-header text-center mb-5">
+      <h2 class="section-title" data-i18n="how_title">Comment ça marche ?</h2>
+      <p class="section-subtitle" data-i18n="how_sub">3 étapes simples pour prendre rendez-vous</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4"><div class="step-card"><div class="step-number">01</div><div class="step-icon"><i class="bi bi-search"></i></div><h5 data-i18n="how1_title">Cherchez votre Médecin</h5><p data-i18n="how1_text">Filtrez par wilaya, commune et spécialité pour trouver le médecin le plus proche.</p></div></div>
+      <div class="col-md-4"><div class="step-card"><div class="step-number">02</div><div class="step-icon"><i class="bi bi-calendar-check"></i></div><h5 data-i18n="how2_title">Choisissez un Créneau</h5><p data-i18n="how2_text">Consultez les disponibilités et réservez le créneau qui vous convient.</p></div></div>
+      <div class="col-md-4"><div class="step-card"><div class="step-number">03</div><div class="step-icon"><i class="bi bi-file-medical"></i></div><h5 data-i18n="how3_title">Recevez votre Ordonnance</h5><p data-i18n="how3_text">Après la consultation, votre ordonnance est disponible directement en ligne.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Section Contact ─────────────────────────────────────── -->
+<section class="contact-section">
+  <div class="container">
+    <div class="text-center mb-5">
+      <div class="contact-badge-pill">
+        <i class="bi bi-headset"></i>
+        <span data-i18n="contact_badge">Support &amp; Assistance</span>
+      </div>
+      <h2 class="fw-bold text-white mb-2" data-i18n="contact_title">Contactez-nous</h2>
+      <p class="text-white opacity-75" data-i18n="contact_sub">Notre équipe est disponible pour vous aider</p>
+    </div>
+    <div class="row g-4 justify-content-center">
+
+      <!-- WhatsApp -->
+      <div class="col-md-4">
+        <a href="https://wa.me/{{ contact_whatsapp }}" target="_blank" class="contact-card">
+          <div class="contact-card-icon contact-whatsapp-icon mx-auto">
+            <i class="bi bi-whatsapp"></i>
+          </div>
+          <h5 class="fw-bold mb-1" data-i18n="contact_whatsapp">WhatsApp</h5>
+          <p class="opacity-75 mb-2">{{ contact_phone }}</p>
+          <span class="btn btn-sm" style="background:#25D366;color:white;border-radius:20px">
+            <i class="bi bi-whatsapp me-1"></i><span data-i18n="contact_whatsapp">WhatsApp</span>
+          </span>
+        </a>
+      </div>
+
+      <!-- Téléphone -->
+      <div class="col-md-4">
+        <a href="tel:{{ contact_phone }}" class="contact-card">
+          <div class="contact-card-icon contact-phone-icon mx-auto">
+            <i class="bi bi-telephone-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-1" data-i18n="contact_call">Appeler</h5>
+          <p class="opacity-75 mb-2">{{ contact_phone }}</p>
+          <span class="btn btn-sm btn-primary" style="border-radius:20px">
+            <i class="bi bi-telephone me-1"></i><span data-i18n="contact_call">Appeler</span>
+          </span>
+        </a>
+      </div>
+
+      <!-- Email -->
+      <div class="col-md-4">
+        <a href="mailto:{{ contact_email }}" class="contact-card">
+          <div class="contact-card-icon contact-email-icon mx-auto">
+            <i class="bi bi-envelope-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-1">Gmail</h5>
+          <p class="opacity-75 mb-2" style="font-size:.85rem">{{ contact_email }}</p>
+          <span class="btn btn-sm btn-danger" style="border-radius:20px">
+            <i class="bi bi-envelope me-1"></i><span data-i18n="contact_email">Envoyer un Email</span>
+          </span>
+        </a>
+      </div>
+
+    </div>
+    <p class="text-center mt-4 opacity-50 small">
+      <i class="bi bi-clock me-1"></i>
+      <span data-i18n="contact_hours">Disponible du Dimanche au Jeudi, 8h–17h</span>
+    </p>
+  </div>
+</section>
+
+{% for ad in ads_bottom %}
+<div class="ad-banner" style="background:{{ ad.background_color }};color:{{ ad.text_color }}">
+  <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      {% if ad.image %}<img src="{{ ad.image.url }}" alt="" style="height:48px;border-radius:6px">{% endif %}
+      <div><div class="fw-semibold">{{ ad.title }}</div>{% if ad.description %}<small class="opacity-75">{{ ad.description }}</small>{% endif %}</div>
+    </div>
+    {% if ad.link_url %}<a href="{{ ad.link_url }}" class="btn btn-sm btn-outline-primary">{{ ad.link_text }}</a>{% endif %}
+  </div>
+</div>
+{% endfor %}
+
+{% if not user.is_authenticated %}
+<section class="cta-section">
+  <div class="container text-center">
+    <h2 data-i18n="cta_title">Rejoignez My Doctor dès aujourd'hui</h2>
+    <p class="lead mb-4" data-i18n="cta_sub">Créez votre compte gratuitement.</p>
+    <a href="{% url 'register_patient' %}" class="btn btn-primary btn-lg px-5">
+      <i class="bi bi-person-plus me-2"></i><span data-i18n="cta_btn">Créer un Compte Patient</span>
+    </a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const slides = Array.from(document.querySelectorAll('.hero-slide:not(.hero-slide-default)'));
+  const defaultSlide = document.getElementById('slide-default');
+  const dotsContainer = document.getElementById('sliderDots');
+  const adBadge = document.getElementById('adBadge');
+  const adLink = document.getElementById('adLink');
+  const illustration = document.getElementById('heroIllustration');
+  const overlay = document.getElementById('heroOverlay');
+  if (slides.length === 0) return;
+  let current = -1;
+  let dots = [];
+  const defaultDot = document.createElement('button');
+  defaultDot.className = 'slider-dot active';
+  defaultDot.addEventListener('click', () => goTo(-1));
+  dotsContainer.appendChild(defaultDot);
+  dots.push(defaultDot);
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'slider-dot';
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+    dots.push(dot);
+  });
+  function goTo(index) {
+    slides.forEach(s => s.classList.remove('active'));
+    dots.forEach(d => d.classList.remove('active'));
+    if (index === -1) {
+      defaultSlide.style.opacity = '1';
+      dots[0].classList.add('active');
+      if (adBadge) adBadge.style.display = 'none';
+      if (adLink) { adLink.classList.remove('visible'); setTimeout(() => adLink.style.display='none', 500); }
+      if (illustration) { illustration.style.opacity='1'; illustration.style.transition='opacity 1s ease'; }
+      if (overlay) overlay.classList.remove('transparent');
+    } else {
+      defaultSlide.style.opacity = '0';
+      slides[index].classList.add('active');
+      dots[index + 1].classList.add('active');
+      if (illustration) { illustration.style.opacity='0'; illustration.style.transition='opacity 1s ease'; }
+      if (overlay) overlay.classList.add('transparent');
+      if (adBadge) adBadge.style.display = 'block';
+      const link = slides[index].dataset.link;
+      const linkText = slides[index].dataset.linktext;
+      if (adLink && link) {
+        adLink.href = link; adLink.textContent = linkText || 'En savoir plus →';
+        adLink.style.display = 'inline-block';
+        setTimeout(() => adLink.classList.add('visible'), 100);
+      } else if (adLink) { adLink.style.display='none'; adLink.classList.remove('visible'); }
+    }
+    current = index;
+  }
+  function next() { goTo(current >= slides.length - 1 ? -1 : current + 1); }
+  let timer = setInterval(next, 5000);
+  const hero = document.querySelector('.hero-section');
+  if (hero) {
+    hero.addEventListener('mouseenter', () => clearInterval(timer));
+    hero.addEventListener('mouseleave', () => { timer = setInterval(next, 5000); });
+  }
+});
+</script>
+{% endblock %}

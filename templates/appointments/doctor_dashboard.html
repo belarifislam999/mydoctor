@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container">
+  <h1><span data-i18n="dd_hello">Bonjour, Dr.</span> {{ request.user.last_name }} 👋</h1>
+  <p>{{ today|date:"l j F Y" }}</p>
+</div></div>
+<div class="container py-4">
+  {% if next_appointment %}
+  <div class="alert alert-primary d-flex align-items-center gap-3 mb-4 shadow-sm">
+    <i class="bi bi-alarm fs-3"></i>
+    <div><strong data-i18n="dd_next_rdv">Prochain rendez-vous :</strong> {{ next_appointment.patient.get_full_name }} — {{ next_appointment.time_slot.date|date:"j F" }} à {{ next_appointment.time_slot.start_time|time:"H:i" }}
+    <a href="{% url 'appointment_detail_doctor' next_appointment.id %}" class="btn btn-sm btn-primary ms-3" data-i18n="dd_see">Voir</a></div>
+  </div>
+  {% endif %}
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="stat-card stat-card-blue"><div class="stat-card-icon"><i class="bi bi-clock-history"></i></div><div class="stat-card-val">{{ pending_requests|length }}</div><div class="stat-card-lbl" data-i18n="dd_pending">En attente</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card stat-card-green"><div class="stat-card-icon"><i class="bi bi-calendar-check"></i></div><div class="stat-card-val">{{ todays_appointments|length }}</div><div class="stat-card-lbl" data-i18n="dd_today">Aujourd'hui</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card stat-card-purple"><div class="stat-card-icon"><i class="bi bi-calendar-plus"></i></div><div class="stat-card-val">{{ upcoming_slots }}</div><div class="stat-card-lbl" data-i18n="dd_free_slots">Créneaux libres</div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-card stat-card-teal"><div class="stat-card-icon"><i class="bi bi-people"></i></div><div class="stat-card-val">{{ total_patients }}</div><div class="stat-card-lbl" data-i18n="dd_total_patients">Patients total</div></div></div>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-inbox me-2 text-warning"></i><span data-i18n="dd_waiting">Demandes en attente</span></h5>
+          <a href="{% url 'doctor_appointments' %}?status=en_attente" class="btn btn-sm btn-outline-secondary" data-i18n="dd_see_all">Tout voir</a>
+        </div>
+        <div class="card-body p-0">
+          {% if pending_requests %}
+          <div class="list-group list-group-flush">
+            {% for appt in pending_requests %}
+            <a href="{% url 'appointment_detail_doctor' appt.id %}" class="list-group-item list-group-item-action">
+              <div class="d-flex align-items-center gap-3">
+                <div class="mini-avatar">{{ appt.patient.first_name|first }}{{ appt.patient.last_name|first }}</div>
+                <div class="flex-grow-1"><div class="fw-medium">{{ appt.patient.get_full_name }}</div><small class="text-muted">{{ appt.time_slot.date|date:"j F" }} à {{ appt.time_slot.start_time|time:"H:i" }}</small></div>
+                <span class="status-badge status-en_attente" data-i18n="status_pending">En attente</span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}<div class="p-4 text-center text-muted"><i class="bi bi-check-circle text-success fs-2 d-block mb-2"></i><span data-i18n="dd_no_pending">Aucune demande en attente</span></div>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-calendar-day me-2 text-primary"></i><span data-i18n="dd_schedule">Programme du jour</span></h5>
+          <a href="{% url 'manage_slots' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i><span data-i18n="dd_add_slots">Créneaux</span></a>
+        </div>
+        <div class="card-body p-0">
+          {% if todays_appointments %}
+          <div class="list-group list-group-flush">
+            {% for appt in todays_appointments %}
+            <a href="{% url 'appointment_detail_doctor' appt.id %}" class="list-group-item list-group-item-action">
+              <div class="d-flex align-items-center gap-3">
+                <div class="time-badge">{{ appt.time_slot.start_time|time:"H:i" }}</div>
+                <div class="flex-grow-1"><div class="fw-medium">{{ appt.patient.get_full_name }}</div><small class="text-muted text-truncate d-block" style="max-width:200px">{{ appt.reason|truncatechars:50 }}</small></div>
+                <span class="badge bg-success" data-i18n="dd_confirmed">Confirmé</span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}<div class="p-4 text-center text-muted"><i class="bi bi-calendar2 fs-2 d-block mb-2"></i><span data-i18n="dd_no_today">Aucun rendez-vous aujourd'hui</span></div>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="quick-actions mt-4">
+    <h6 class="text-muted text-uppercase small mb-3" data-i18n="dd_actions">Actions rapides</h6>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'manage_slots' %}" class="btn btn-outline-primary"><i class="bi bi-calendar-plus me-2"></i><span data-i18n="dd_manage_slots">Gérer mes créneaux</span></a>
+      <a href="{% url 'doctor_appointments' %}" class="btn btn-outline-secondary"><i class="bi bi-clipboard2-pulse me-2"></i><span data-i18n="dd_all_appts">Tous les rendez-vous</span></a>
+      <a href="{% url 'profile' %}" class="btn btn-outline-secondary"><i class="bi bi-person-gear me-2"></i><span data-i18n="dd_my_profile">Mon profil</span></a>
+    </div>
+  </div>
+</div>
+{% endblock %}

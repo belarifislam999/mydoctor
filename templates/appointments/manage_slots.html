@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h1><i class="bi bi-calendar-plus me-2"></i><span data-i18n="ms_title">Gérer mes Disponibilités</span></h1><p data-i18n="ms_sub">Créez des créneaux pour que les patients puissent réserver</p></div></div>
+<div class="container py-4"><div class="row g-4">
+  <div class="col-lg-5">
+    <ul class="nav nav-pills mb-3">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#single" data-i18n="ms_single">Créneau unique</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#bulk" data-i18n="ms_bulk">Journée complète</button></li>
+    </ul>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="single">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white"><h5 class="mb-0"><i class="bi bi-plus-circle me-2 text-primary"></i><span data-i18n="ms_add">Ajouter un créneau</span></h5></div>
+          <div class="card-body">
+            <form method="POST">{% csrf_token %}<input type="hidden" name="form_type" value="single">
+              <div class="mb-3"><label class="form-label" data-i18n="ms_date">Date</label>{{ single_form.date }}</div>
+              <div class="row g-3">
+                <div class="col-6"><label class="form-label" data-i18n="ms_start">Début</label>{{ single_form.start_time }}</div>
+                <div class="col-6"><label class="form-label" data-i18n="ms_end">Fin</label>{{ single_form.end_time }}</div>
+              </div>
+              {% if single_form.non_field_errors %}<div class="alert alert-danger mt-2">{{ single_form.non_field_errors }}</div>{% endif %}
+              <button type="submit" class="btn btn-primary w-100 mt-3"><i class="bi bi-plus me-1"></i><span data-i18n="ms_add_btn">Ajouter</span></button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="bulk">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white"><h5 class="mb-0"><i class="bi bi-calendar-range me-2 text-success"></i><span data-i18n="ms_generate">Générer une journée</span></h5></div>
+          <div class="card-body">
+            <form method="POST">{% csrf_token %}<input type="hidden" name="form_type" value="bulk">
+              <div class="mb-3"><label class="form-label" data-i18n="ms_date">Date</label>{{ bulk_form.date }}</div>
+              <div class="row g-3">
+                <div class="col-6"><label class="form-label" data-i18n="ms_start">Début</label>{{ bulk_form.start_hour }}</div>
+                <div class="col-6"><label class="form-label" data-i18n="ms_end">Fin</label>{{ bulk_form.end_hour }}</div>
+              </div>
+              <div class="mb-3 mt-3"><label class="form-label" data-i18n="ms_duration">Durée</label>{{ bulk_form.slot_duration }}</div>
+              <button type="submit" class="btn btn-success w-100"><i class="bi bi-calendar-plus me-1"></i><span data-i18n="ms_gen_btn">Générer</span></button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-calendar3 me-2 text-primary"></i><span data-i18n="ms_upcoming">Mes créneaux à venir</span> <span class="badge bg-primary ms-2">{{ upcoming_slots|length }}</span></h5></div>
+      <div class="card-body p-0">
+        {% if upcoming_slots %}
+          {% regroup upcoming_slots by date as slots_by_date %}
+          {% for date_group in slots_by_date %}
+          <div class="slot-day-block">
+            <div class="slot-day-header"><i class="bi bi-calendar-event me-2"></i>{{ date_group.grouper|date:"l j F Y" }}</div>
+            {% for slot in date_group.list %}
+            <div class="slot-row {% if slot.is_booked %}slot-booked{% endif %}">
+              <span class="slot-time-text"><i class="bi bi-clock me-1"></i>{{ slot.start_time|time:"H:i" }} – {{ slot.end_time|time:"H:i" }}</span>
+              {% if slot.is_booked %}<span class="badge bg-warning text-dark"><i class="bi bi-lock me-1"></i><span data-i18n="ms_booked">Réservé</span></span>
+              {% else %}<div class="d-flex align-items-center gap-2"><span class="badge bg-success"><i class="bi bi-unlock me-1"></i><span data-i18n="ms_free">Libre</span></span>
+                <form method="POST" action="{% url 'delete_slot' slot.id %}" class="d-inline" onsubmit="return confirm('?')">{% csrf_token %}<button type="submit" class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button></form></div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        {% else %}<div class="empty-state py-5"><i class="bi bi-calendar-x"></i><h5 data-i18n="ms_no_slots">Aucun créneau</h5><p data-i18n="ms_no_slots_sub">Ajoutez vos disponibilités.</p></div>{% endif %}
+      </div>
+    </div>
+  </div>
+</div></div>
+{% endblock %}

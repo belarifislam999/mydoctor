@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="container py-4">
+<a href="{% url 'doctor_appointments' %}" class="btn btn-outline-secondary btn-sm mb-4"><i class="bi bi-arrow-left me-1"></i><span data-i18n="add_back">Retour</span></a>
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i><span data-i18n="add_title">Détails du Rendez-vous</span></h5></div>
+      <div class="card-body">
+        <div class="detail-row"><span class="detail-label" data-i18n="add_patient">Patient</span><span class="detail-val fw-medium">{{ appointment.patient.get_full_name }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="add_email">Email</span><span class="detail-val">{{ appointment.patient.email }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="add_phone">Téléphone</span><span class="detail-val">{{ appointment.patient.phone_number|default:"—" }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="add_date">Date</span><span class="detail-val">{{ appointment.time_slot.date|date:"l j F Y" }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="add_time">Heure</span><span class="detail-val">{{ appointment.time_slot.start_time|time:"H:i" }} – {{ appointment.time_slot.end_time|time:"H:i" }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="add_status">Statut</span><span class="status-badge status-{{ appointment.status }}">{{ appointment.get_status_display }}</span></div>
+        <hr><h6 class="text-muted small text-uppercase" data-i18n="add_reason">Motif</h6><p class="mt-2">{{ appointment.reason }}</p>
+      </div>
+    </div>
+    {% if appointment.patient.patient_profile %}{% with p=appointment.patient.patient_profile %}
+    {% if p.blood_group or p.allergies or p.medical_history %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-file-medical me-2 text-danger"></i><span data-i18n="add_med_info">Infos Médicales</span></h5></div>
+      <div class="card-body">
+        {% if p.blood_group %}<div class="detail-row"><span class="detail-label" data-i18n="add_blood">Groupe sanguin</span><span class="badge bg-danger">{{ p.blood_group }}</span></div>{% endif %}
+        {% if p.allergies %}<div class="mt-2"><span class="detail-label" data-i18n="add_allergies">Allergies</span><p class="text-muted small mt-1">{{ p.allergies }}</p></div>{% endif %}
+        {% if p.medical_history %}<div class="mt-2"><span class="detail-label" data-i18n="add_history">Antécédents</span><p class="text-muted small mt-1">{{ p.medical_history }}</p></div>{% endif %}
+      </div>
+    </div>
+    {% endif %}{% endwith %}{% endif %}
+  </div>
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-pencil me-2 text-warning"></i><span data-i18n="add_update">Mettre à jour</span></h5></div>
+      <div class="card-body">
+        <form method="POST">{% csrf_token %}<input type="hidden" name="action" value="update_status">
+          <div class="mb-3"><label class="form-label" data-i18n="add_status">Statut</label>{{ notes_form.status }}</div>
+          <div class="mb-3"><label class="form-label" data-i18n="add_notes">Notes</label>{{ notes_form.doctor_notes }}</div>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i><span data-i18n="add_save">Enregistrer</span></button>
+        </form>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-file-medical-fill me-2 text-success"></i><span data-i18n="add_prescription">Ordonnance</span></h5></div>
+      <div class="card-body">
+        {% if appointment.status == 'en_attente' %}
+        <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i><span data-i18n="add_accept_first">Acceptez d'abord le rendez-vous.</span></div>
+        {% else %}
+        <form method="POST">{% csrf_token %}<input type="hidden" name="action" value="add_prescription">
+          <div class="mb-3"><label class="form-label" data-i18n="add_diagnosis">Diagnostic</label>{{ presc_form.diagnosis }}</div>
+          <div class="mb-3"><label class="form-label" data-i18n="add_medications">Médicaments</label>{{ presc_form.medications }}</div>
+          <div class="mb-3"><label class="form-label" data-i18n="add_instructions">Instructions</label>{{ presc_form.instructions }}</div>
+          <div class="mb-3"><label class="form-label" data-i18n="add_followup">Date de suivi</label>{{ presc_form.follow_up_date }}</div>
+          <button type="submit" class="btn btn-success"><i class="bi bi-file-medical me-1"></i>
+            <span data-i18n="{% if prescription %}add_update_presc{% else %}add_save_presc{% endif %}">{% if prescription %}Mettre à jour{% else %}Enregistrer{% endif %}</span>
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="container py-5">
+<a href="{% url 'doctor_list' %}" class="btn btn-outline-secondary btn-sm mb-4"><i class="bi bi-arrow-left me-1"></i><span data-i18n="doc_back">Retour</span></a>
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="profile-sidebar-card">
+      <div class="profile-avatar-lg">{{ doctor.user.first_name|first }}{{ doctor.user.last_name|first }}</div>
+      <h3>Dr. {{ doctor.user.get_full_name }}</h3>
+      <span class="badge badge-specialty mb-2">{{ doctor.get_specialization_display }}</span>
+      <div class="d-flex align-items-center justify-content-center gap-1 text-danger mb-3"><i class="bi bi-geo-alt-fill"></i><span class="small fw-semibold">{{ doctor.get_wilaya_display }}{% if doctor.commune %} — {{ doctor.commune }}{% endif %}</span></div>
+      <div class="profile-stats">
+        <div class="profile-stat"><div class="stat-val">{{ doctor.years_of_experience }}</div><div class="stat-lbl" data-i18n="doc_exp">Ans d'exp.</div></div>
+        <div class="profile-stat"><div class="stat-val">{{ doctor.consultation_fee }}</div><div class="stat-lbl" data-i18n="doc_fee">DA</div></div>
+        <div class="profile-stat"><div class="stat-val">{{ available_slots|length }}</div><div class="stat-lbl" data-i18n="doc_slots">Créneaux</div></div>
+      </div>
+      {% if doctor.user.phone_number %}<div class="contact-info mt-3"><i class="bi bi-telephone me-2 text-primary"></i>{{ doctor.user.phone_number }}</div>{% endif %}
+      {% if doctor.clinic_address %}<div class="contact-info mt-2"><i class="bi bi-geo-alt me-2 text-primary"></i>{{ doctor.clinic_address }}</div>{% endif %}
+      {% if doctor.bio %}<hr><p class="text-muted small">{{ doctor.bio }}</p>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-calendar3 me-2 text-primary"></i><span data-i18n="doc_available">Créneaux Disponibles</span></h5></div>
+      <div class="card-body">
+        {% if available_slots %}
+          {% regroup available_slots by date as slots_by_date %}
+          {% for date_group in slots_by_date %}
+          <div class="slot-date-group mb-4">
+            <h6 class="slot-date-label"><i class="bi bi-calendar-event me-2"></i>{{ date_group.grouper|date:"l j F Y" }}</h6>
+            <div class="slots-grid">
+              {% for slot in date_group.list %}
+              <div class="time-slot-chip">
+                <span class="slot-time">{{ slot.start_time|time:"H:i" }} – {{ slot.end_time|time:"H:i" }}</span>
+                {% if user.is_authenticated and user.is_patient %}
+                  <a href="{% url 'book_appointment' slot_id=slot.id %}" class="btn btn-success btn-xs" data-i18n="doc_book">Réserver</a>
+                {% elif not user.is_authenticated %}
+                  <a href="{% url 'login' %}" class="btn btn-outline-primary btn-xs" data-i18n="doc_login_book">Connexion</a>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state py-4"><i class="bi bi-calendar-x"></i>
+            <h5 data-i18n="doc_no_slots">Aucun créneau disponible</h5>
+            <p class="text-muted" data-i18n="doc_no_slots_sub">Ce médecin n'a pas encore publié de disponibilités.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}

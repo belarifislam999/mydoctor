@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container">
+  <h1><span data-i18n="pd_hello">Bonjour,</span> {{ request.user.first_name }} 👋</h1>
+  <p>{{ today|date:"l j F Y" }}</p>
+</div></div>
+<div class="container py-4">
+  <div class="welcome-banner mb-4">
+    <div class="welcome-banner-text"><h5 data-i18n="pd_find_doctor">Besoin d'un médecin ?</h5><p class="mb-0 text-muted" data-i18n="pd_find_sub">Trouvez un spécialiste près de chez vous.</p></div>
+    <a href="{% url 'doctor_list' %}" class="btn btn-primary"><i class="bi bi-search me-2"></i><span data-i18n="pd_find_btn">Trouver un Médecin</span></a>
+  </div>
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-calendar-check me-2 text-primary"></i><span data-i18n="pd_upcoming">Mes Rendez-vous à venir</span></h5>
+          <a href="{% url 'patient_appointments' %}" class="btn btn-sm btn-outline-secondary" data-i18n="dd_see_all">Tout voir</a>
+        </div>
+        <div class="card-body p-0">
+          {% if upcoming %}
+          <div class="list-group list-group-flush">
+            {% for appt in upcoming %}
+            <a href="{% url 'appointment_detail_patient' appt.id %}" class="list-group-item list-group-item-action">
+              <div class="d-flex align-items-center gap-3">
+                <div class="date-badge"><span class="month">{{ appt.time_slot.date|date:"M" }}</span><span class="day">{{ appt.time_slot.date|date:"j" }}</span></div>
+                <div class="flex-grow-1"><div class="fw-medium">Dr. {{ appt.doctor.get_full_name }}</div><small class="text-muted">{{ appt.time_slot.start_time|time:"H:i" }} — {{ appt.doctor.doctor_profile.get_specialization_display }}</small></div>
+                <span class="status-badge status-{{ appt.status }}">{{ appt.get_status_display }}</span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}<div class="p-4 text-center text-muted"><i class="bi bi-calendar2 fs-2 d-block mb-2"></i><span data-i18n="pd_no_upcoming">Aucun rendez-vous à venir.</span><a href="{% url 'doctor_list' %}" class="d-block mt-2" data-i18n="pd_book_now">Réserver maintenant →</a></div>{% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-clock-history me-2 text-secondary"></i><span data-i18n="pd_history">Historique récent</span></h5></div>
+        <div class="card-body p-0">
+          {% if recent %}
+          <div class="list-group list-group-flush">
+            {% for appt in recent %}
+            <a href="{% url 'appointment_detail_patient' appt.id %}" class="list-group-item list-group-item-action py-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <div><div class="fw-medium small">Dr. {{ appt.doctor.last_name }}</div><small class="text-muted">{{ appt.time_slot.date|date:"j F Y" }}</small></div>
+                <span class="status-badge status-{{ appt.status }} status-sm">{{ appt.get_status_display }}</span>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}<div class="p-3 text-center text-muted small" data-i18n="pd_no_history">Aucun historique.</div>{% endif %}
+        </div>
+      </div>
+      <div class="card border-0 shadow-sm bg-gradient-blue text-white">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="profile-bubble">{{ request.user.first_name|first }}{{ request.user.last_name|first }}</div>
+          <div><div class="fw-medium">{{ request.user.get_full_name }}</div><small class="opacity-75">{{ request.user.email }}</small></div>
+          <a href="{% url 'profile' %}" class="btn btn-light btn-sm ms-auto" data-i18n="pd_edit">Modifier</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

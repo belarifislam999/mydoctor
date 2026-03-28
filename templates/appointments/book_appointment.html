@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="container py-5"><div class="row justify-content-center"><div class="col-lg-6">
+<a href="{% url 'doctor_detail' doctor.doctor_profile.id %}" class="btn btn-outline-secondary btn-sm mb-4"><i class="bi bi-arrow-left me-1"></i><span data-i18n="ba_back">Retour</span></a>
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white py-3"><h4 class="mb-0"><i class="bi bi-calendar-plus me-2 text-primary"></i><span data-i18n="ba_title">Réserver un Rendez-vous</span></h4></div>
+  <div class="card-body">
+    <div class="booking-summary mb-4">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="doctor-avatar-sm">{{ doctor.first_name|first }}{{ doctor.last_name|first }}</div>
+        <div><div class="fw-semibold">Dr. {{ doctor.get_full_name }}</div><small class="text-muted">{{ doctor.doctor_profile.get_specialization_display }}</small></div>
+      </div>
+      <div class="booking-slot-info">
+        <span><i class="bi bi-geo-alt me-2 text-danger"></i>{{ doctor.doctor_profile.get_wilaya_display }}{% if doctor.doctor_profile.commune %} — {{ doctor.doctor_profile.commune }}{% endif %}</span>
+        <span><i class="bi bi-calendar me-2 text-primary"></i>{{ slot.date|date:"l j F Y" }}</span>
+        <span><i class="bi bi-clock me-2 text-primary"></i>{{ slot.start_time|time:"H:i" }} – {{ slot.end_time|time:"H:i" }}</span>
+        <span><i class="bi bi-cash me-2 text-primary"></i><span data-i18n="ba_fee">Tarif</span> : {{ doctor.doctor_profile.consultation_fee }} DA</span>
+      </div>
+    </div>
+    <form method="POST">{% csrf_token %}
+      <div class="mb-4"><label class="form-label fw-medium" data-i18n="ba_reason">Motif de la consultation</label>{{ form.reason }}</div>
+      <div class="d-flex gap-3">
+        <button type="submit" class="btn btn-primary flex-grow-1 btn-lg"><i class="bi bi-check-circle me-2"></i><span data-i18n="ba_confirm">Confirmer la réservation</span></button>
+        <a href="{% url 'doctor_detail' doctor.doctor_profile.id %}" class="btn btn-outline-secondary" data-i18n="ba_cancel">Annuler</a>
+      </div>
+    </form>
+    <small class="text-muted d-block mt-3 text-center"><i class="bi bi-info-circle me-1"></i><span data-i18n="ba_note">Votre rendez-vous sera en attente jusqu'à confirmation du médecin.</span></small>
+  </div>
+</div>
+</div></div></div>
+{% endblock %}

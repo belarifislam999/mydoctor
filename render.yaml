@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: mydoctor
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn mydoctor.wsgi --bind 0.0.0.0:$PORT"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: PYTHON_VERSION
+        value: "3.11.0"

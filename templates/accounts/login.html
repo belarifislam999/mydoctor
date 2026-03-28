@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Connexion" %} — My Doctor{% endblock %}
+{% block content %}
+<div class="auth-page"><div class="container"><div class="row justify-content-center"><div class="col-lg-4 col-md-6">
+<div class="auth-card text-center">
+  <div class="auth-card-header">
+    <div class="auth-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+    <h3>{% trans "Connexion" %}</h3>
+    <p class="text-muted">{% trans "Accédez à votre espace My Doctor" %}</p>
+  </div>
+  <form method="POST" novalidate>
+    {% csrf_token %}
+    <div class="mb-3 text-start">
+      <label class="form-label">{% trans "Identifiant" %}</label>
+      {{ form.identifiant }}
+      <small class="text-muted">
+        {% trans "Nom d'utilisateur, email ou numéro de téléphone" %}
+      </small>
+      {% if form.identifiant.errors %}<div class="form-error">{{ form.identifiant.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="mb-3 text-start">
+      <label class="form-label">{% trans "Mot de passe" %}</label>
+      <div class="input-group">
+        <input type="password" name="password" id="passwordInput"
+               class="form-control"
+               placeholder="{% trans 'Mot de passe' %}">
+        <button type="button" class="btn btn-outline-secondary" id="togglePassword"
+                title="Afficher/Masquer">
+          <i class="bi bi-eye" id="eyeIcon"></i>
+        </button>
+      </div>
+      {% if form.password.errors %}<div class="form-error">{{ form.password.errors.0 }}</div>{% endif %}
+    </div>
+    <button type="submit" class="btn btn-primary w-100 btn-lg mt-2">
+      <i class="bi bi-box-arrow-in-right me-2"></i>{% trans "Se Connecter" %}
+    </button>
+  </form>
+  <hr class="my-4">
+  <p class="text-muted mb-0">
+    {% trans "Pas encore de compte ?" %} <a href="{% url 'register_patient' %}">{% trans "Créer un compte" %}</a>
+  </p>
+  <small class="text-muted d-block mt-2">
+    {% trans "Les médecins reçoivent leurs accès par email de l'administrateur." %}
+  </small>
+</div>
+</div></div></div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Bouton afficher/masquer mot de passe
+document.getElementById('togglePassword').addEventListener('click', function() {
+    const input = document.getElementById('passwordInput');
+    const icon  = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+});
+</script>
+{% endblock %}

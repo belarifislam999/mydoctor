@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h1><i class="bi bi-calendar-check me-2"></i><span data-i18n="pa_title">Mes Rendez-vous</span></h1><p data-i18n="pa_sub">Historique et suivi de vos consultations</p></div></div>
+<div class="container py-4">
+  <div class="filter-tabs mb-4">
+    <a href="{% url 'patient_appointments' %}" class="filter-tab {% if not status_filter %}active{% endif %}" data-i18n="da_all">Tous</a>
+    {% for key, name in status_choices %}<a href="?status={{ key }}" class="filter-tab {% if status_filter == key %}active{% endif %}">{{ name }}</a>{% endfor %}
+  </div>
+  {% if appointments %}
+  <div class="row g-3">
+    {% for appt in appointments %}
+    <div class="col-md-6 col-lg-4">
+      <a href="{% url 'appointment_detail_patient' appt.id %}" class="appt-card">
+        <div class="appt-card-top">
+          <div class="date-badge"><span class="month">{{ appt.time_slot.date|date:"M" }}</span><span class="day">{{ appt.time_slot.date|date:"j" }}</span></div>
+          <div class="appt-card-info"><div class="fw-medium">Dr. {{ appt.doctor.get_full_name }}</div><small>{{ appt.doctor.doctor_profile.get_specialization_display }}</small></div>
+          <span class="status-badge status-{{ appt.status }}">{{ appt.get_status_display }}</span>
+        </div>
+        <div class="appt-card-bottom">
+          <span><i class="bi bi-clock me-1"></i>{{ appt.time_slot.start_time|time:"H:i" }}</span>
+          <span><i class="bi bi-geo-alt me-1"></i>{{ appt.doctor.doctor_profile.get_wilaya_display }}</span>
+          {% if appt.prescription %}<span class="text-success"><i class="bi bi-file-medical me-1"></i><span data-i18n="add_prescription">Ordonnance</span></span>{% endif %}
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty-state"><i class="bi bi-calendar2"></i><h4 data-i18n="pa_no_appts">Aucun rendez-vous</h4><a href="{% url 'doctor_list' %}" class="btn btn-primary mt-2" data-i18n="pa_find">Trouver un Médecin</a></div>{% endif %}
+</div>
+{% endblock %}

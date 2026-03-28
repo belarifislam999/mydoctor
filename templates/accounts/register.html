@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans "Créer un Compte" %} — My Doctor{% endblock %}
+{% block content %}
+<div class="auth-page"><div class="container"><div class="row justify-content-center"><div class="col-lg-6 col-md-8">
+<div class="auth-card">
+  <div class="auth-card-header text-center">
+    <div class="auth-icon patient-icon"><i class="bi bi-person-heart"></i></div>
+    <h3>{% trans "Créer un Compte Patient" %}</h3>
+    <p class="text-muted">{% trans "Rejoignez My Doctor gratuitement" %}</p>
+  </div>
+  <form method="POST" novalidate>
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-6">
+        <label class="form-label">{% trans "Prénom" %} *</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-6">
+        <label class="form-label">{% trans "Nom" %} *</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<div class="form-error">{{ form.last_name.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-12">
+        <label class="form-label">{% trans "Nom d'utilisateur" %} *</label>
+        {{ form.username }}
+        {% if form.username.errors %}<div class="form-error">{{ form.username.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Email *</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="form-error">{{ form.email.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Téléphone" %}</label>
+        {{ form.phone_number }}
+        {% if form.phone_number.errors %}<div class="form-error">{{ form.phone_number.errors.0 }}</div>{% endif %}
+      </div>
+
+      <!-- Mot de passe avec oeil -->
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Mot de passe" %} * <small class="text-muted">(min. 6)</small></label>
+        <div class="input-group">
+          <input type="password" name="password1" id="pass1" class="form-control" placeholder="••••••">
+          <button type="button" class="btn btn-outline-secondary toggle-pass" data-target="pass1">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+        {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Confirmer" %} *</label>
+        <div class="input-group">
+          <input type="password" name="password2" id="pass2" class="form-control" placeholder="••••••">
+          <button type="button" class="btn btn-outline-secondary toggle-pass" data-target="pass2">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+        {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors.0 }}</div>{% endif %}
+      </div>
+    </div>
+    {% if form.non_field_errors %}<div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>{% endif %}
+    <button type="submit" class="btn btn-primary w-100 mt-4 btn-lg">
+      <i class="bi bi-person-check me-2"></i>{% trans "Créer mon Compte" %}
+    </button>
+  </form>
+  <hr class="my-3">
+  <p class="text-center text-muted mb-0">
+    {% trans "Déjà inscrit ?" %} <a href="{% url 'login' %}">{% trans "Se connecter" %}</a>
+  </p>
+</div>
+</div></div></div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.toggle-pass').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = document.getElementById(this.dataset.target);
+        const icon  = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    });
+});
+</script>
+{% endblock %}

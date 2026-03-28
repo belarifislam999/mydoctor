@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container"><h1><i class="bi bi-person-gear me-2"></i><span data-i18n="prof_title_doc">Mon Profil</span></h1><p data-i18n="prof_sub_doc">Gérez vos informations professionnelles</p></div></div>
+<div class="container py-4"><form method="POST" enctype="multipart/form-data">{% csrf_token %}
+<div class="row g-4">
+  <div class="col-lg-4"><div class="card border-0 shadow-sm"><div class="card-body text-center py-4">
+    <div class="profile-avatar-lg mb-3">
+     {% if request.user.profile_picture %}
+        <img src="{{ request.user.profile_picture.url }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+     {% else %}
+        {{ request.user.first_name|first }}{{ request.user.last_name|first }}
+     {% endif %}
+    </div>
+    <h5>Dr. {{ request.user.get_full_name }}</h5><span class="badge badge-specialty">{{ profile.get_specialization_display }}</span>
+    <div class="text-muted small mt-2"><i class="bi bi-geo-alt me-1"></i>{{ profile.get_wilaya_display }}{% if profile.commune %} — {{ profile.commune }}{% endif %}</div>
+    <hr><div class="mb-3"><label class="form-label small" data-i18n="prof_photo">Photo</label>{{ user_form.profile_picture }}</div>
+  </div></div></div>
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h5 class="mb-0" data-i18n="prof_personal">Informations Personnelles</h5></div>
+      <div class="card-body"><div class="row g-3">
+        <div class="col-6"><label class="form-label" data-i18n="prof_fname">Prénom</label>{{ user_form.first_name }}</div>
+        <div class="col-6"><label class="form-label" data-i18n="prof_lname">Nom</label>{{ user_form.last_name }}</div>
+        <div class="col-md-6"><label class="form-label" data-i18n="prof_email">Email</label>{{ user_form.email }}</div>
+        <div class="col-md-6"><label class="form-label" data-i18n="prof_phone">Téléphone</label>{{ user_form.phone_number }}</div>
+      </div></div>
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0" data-i18n="prof_pro">Informations Professionnelles</h5></div>
+      <div class="card-body"><div class="row g-3">
+        <div class="col-md-6"><label class="form-label" data-i18n="prof_spec">Spécialisation</label>{{ profile_form.specialization }}</div>
+        <div class="col-md-6"><label class="form-label" data-i18n="prof_wilaya">Wilaya</label>{{ profile_form.wilaya }}</div>
+        <div class="col-md-6"><label class="form-label" data-i18n="prof_commune">Commune</label>{{ profile_form.commune }}</div>
+        <div class="col-md-3"><label class="form-label" data-i18n="prof_exp">Expérience</label>{{ profile_form.years_of_experience }}</div>
+        <div class="col-md-3"><label class="form-label" data-i18n="prof_fee">Tarif (DA)</label>{{ profile_form.consultation_fee }}</div>
+        <div class="col-12"><label class="form-label" data-i18n="prof_bio">Biographie</label>{{ profile_form.bio }}</div>
+        <div class="col-12"><label class="form-label" data-i18n="prof_address">Adresse</label>{{ profile_form.clinic_address }}</div>
+        <div class="col-12"><div class="form-check">{{ profile_form.is_available }}<label class="form-check-label" data-i18n="prof_available">Disponible pour les rendez-vous</label></div></div>
+      </div></div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3 px-4"><i class="bi bi-save me-2"></i><span data-i18n="prof_save">Enregistrer</span></button>
+  </div>
+</div>
+</form></div>
+{% endblock %}

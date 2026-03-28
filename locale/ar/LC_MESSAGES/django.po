@@ -1,0 +1,177 @@
+# Arabic translations for My Doctor
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ar\n"
+
+msgid "My Doctor"
+msgstr "طبيبي"
+
+msgid "Nos Médecins"
+msgstr "أطباؤنا"
+
+msgid "Tableau de Bord"
+msgstr "لوحة التحكم"
+
+msgid "Mes Créneaux"
+msgstr "مواعيدي"
+
+msgid "Rendez-vous"
+msgstr "المواعيد"
+
+msgid "Mes Rendez-vous"
+msgstr "مواعيدي"
+
+msgid "Mon Profil"
+msgstr "ملفي الشخصي"
+
+msgid "Déconnexion"
+msgstr "تسجيل الخروج"
+
+msgid "Connexion"
+msgstr "تسجيل الدخول"
+
+msgid "Créer un Compte"
+msgstr "إنشاء حساب"
+
+msgid "Médecin"
+msgstr "طبيب"
+
+msgid "Patient"
+msgstr "مريض"
+
+msgid "Trouvez votre"
+msgstr "ابحث عن"
+
+msgid "en Algérie"
+msgstr "في الجزائر"
+
+msgid "Médecin"
+msgstr "طبيبك"
+
+msgid "Plateforme Médicale de Confiance — Algérie"
+msgstr "منصة طبية موثوقة — الجزائر"
+
+msgid "Consultez des spécialistes dans votre wilaya, prenez rendez-vous en ligne et gérez votre santé facilement."
+msgstr "استشر المتخصصين في ولايتك، احجز مواعيدك عبر الإنترنت وتحكم في صحتك بسهولة."
+
+msgid "Mon Tableau de Bord"
+msgstr "لوحة التحكم"
+
+msgid "Chercher un Médecin"
+msgstr "ابحث عن طبيب"
+
+msgid "Créer un Compte"
+msgstr "إنشاء حساب"
+
+msgid "Voir les Médecins"
+msgstr "عرض الأطباء"
+
+msgid "Médecins Inscrits"
+msgstr "أطباء مسجلون"
+
+msgid "Patients"
+msgstr "مرضى"
+
+msgid "Wilayas Couvertes"
+msgstr "ولاية مشمولة"
+
+msgid "Rechercher par Spécialité"
+msgstr "البحث حسب التخصص"
+
+msgid "Trouvez le spécialiste qu'il vous faut"
+msgstr "ابحث عن المتخصص الذي تحتاجه"
+
+msgid "Voir Tout"
+msgstr "عرض الكل"
+
+msgid "Comment ça marche ?"
+msgstr "كيف يعمل؟"
+
+msgid "3 étapes simples pour prendre rendez-vous"
+msgstr "3 خطوات بسيطة لحجز موعد"
+
+msgid "Cherchez votre Médecin"
+msgstr "ابحث عن طبيبك"
+
+msgid "Filtrez par wilaya, commune et spécialité pour trouver le médecin le plus proche."
+msgstr "فلتر حسب الولاية والبلدية والتخصص للعثور على أقرب طبيب."
+
+msgid "Choisissez un Créneau"
+msgstr "اختر موعداً"
+
+msgid "Consultez les disponibilités et réservez le créneau qui vous convient."
+msgstr "اطلع على المواعيد المتاحة واحجز الوقت المناسب لك."
+
+msgid "Recevez votre Ordonnance"
+msgstr "احصل على وصفتك الطبية"
+
+msgid "Après la consultation, votre ordonnance est disponible directement en ligne."
+msgstr "بعد الاستشارة، تصبح وصفتك الطبية متاحة مباشرة عبر الإنترنت."
+
+msgid "Rejoignez My Doctor dès aujourd'hui"
+msgstr "انضم إلى طبيبي اليوم"
+
+msgid "Créez votre compte gratuitement et prenez rendez-vous avec un médecin en quelques clics."
+msgstr "أنشئ حسابك مجاناً وحجز موعداً مع طبيب بنقرات قليلة."
+
+msgid "Créer un Compte Patient"
+msgstr "إنشاء حساب مريض"
+
+msgid "Identifiant"
+msgstr "المعرّف"
+
+msgid "Mot de passe"
+msgstr "كلمة المرور"
+
+msgid "Se Connecter"
+msgstr "تسجيل الدخول"
+
+msgid "Pas encore de compte ?"
+msgstr "ليس لديك حساب؟"
+
+msgid "Créer un compte"
+msgstr "إنشاء حساب"
+
+msgid "Les médecins reçoivent leurs accès par email de l'administrateur."
+msgstr "يتلقى الأطباء بيانات دخولهم عبر البريد الإلكتروني من المسؤول."
+
+msgid "Trouver un Médecin"
+msgstr "ابحث عن طبيب"
+
+msgid "Recherchez par wilaya, commune ou spécialité"
+msgstr "ابحث حسب الولاية أو البلدية أو التخصص"
+
+msgid "Filtrer"
+msgstr "تصفية"
+
+msgid "Toutes les wilayas"
+msgstr "جميع الولايات"
+
+msgid "Commune / Ville"
+msgstr "البلدية / المدينة"
+
+msgid "Toutes les spécialités"
+msgstr "جميع التخصصات"
+
+msgid "Rechercher"
+msgstr "بحث"
+
+msgid "Effacer les filtres"
+msgstr "مسح الفلاتر"
+
+msgid "Voir & Réserver"
+msgstr "عرض وحجز"
+
+msgid "Aucun médecin trouvé"
+msgstr "لم يتم العثور على طبيب"
+
+msgid "Essayez de modifier vos critères de recherche."
+msgstr "حاول تعديل معايير البحث."
+
+msgid "Plateforme algérienne de prise de rendez-vous médicaux."
+msgstr "منصة جزائرية لحجز المواعيد الطبية."
+
+msgid "Tous droits réservés."
+msgstr "جميع الحقوق محفوظة."

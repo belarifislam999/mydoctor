@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="container py-4">
+<a href="{% url 'patient_appointments' %}" class="btn btn-outline-secondary btn-sm mb-4"><i class="bi bi-arrow-left me-1"></i><span data-i18n="add_back">Retour</span></a>
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i><span data-i18n="adp_title">Rendez-vous</span> #{{ appointment.id }}</h5></div>
+      <div class="card-body">
+        <div class="detail-row"><span class="detail-label" data-i18n="adp_doctor">Médecin</span><span class="detail-val fw-medium">Dr. {{ appointment.doctor.get_full_name }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="adp_specialty">Spécialité</span><span class="detail-val">{{ appointment.doctor.doctor_profile.get_specialization_display }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="adp_wilaya">Wilaya</span><span class="detail-val">{{ appointment.doctor.doctor_profile.get_wilaya_display }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="adp_date">Date</span><span class="detail-val">{{ appointment.time_slot.date|date:"l j F Y" }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="adp_time">Heure</span><span class="detail-val">{{ appointment.time_slot.start_time|time:"H:i" }}</span></div>
+        <div class="detail-row"><span class="detail-label" data-i18n="adp_status">Statut</span><span class="status-badge status-{{ appointment.status }}">{{ appointment.get_status_display }}</span></div>
+        <hr><h6 class="text-muted small text-uppercase" data-i18n="adp_reason">Votre motif</h6><p class="mt-2">{{ appointment.reason }}</p>
+        {% if appointment.doctor_notes %}<hr><h6 class="text-muted small text-uppercase" data-i18n="adp_doc_notes">Notes du médecin</h6><p class="mt-2">{{ appointment.doctor_notes }}</p>{% endif %}
+        {% if appointment.can_be_cancelled %}
+        <hr><form method="POST" onsubmit="return confirm(I18N.t('pd_confirm_cancel'))">{% csrf_token %}<input type="hidden" name="action" value="cancel">
+        <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-x-circle me-2"></i><span data-i18n="adp_cancel">Annuler le rendez-vous</span></button></form>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    {% if prescription %}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-file-medical-fill me-2 text-success"></i><span data-i18n="adp_prescription">Ordonnance</span></h5></div>
+      <div class="card-body">
+        <div class="prescription-block"><h6 data-i18n="adp_diagnosis">Diagnostic</h6><p>{{ prescription.diagnosis }}</p></div>
+        {% if prescription.medications %}<div class="prescription-block"><h6 data-i18n="adp_medications">Médicaments</h6><pre class="prescription-pre">{{ prescription.medications }}</pre></div>{% endif %}
+        {% if prescription.instructions %}<div class="prescription-block"><h6 data-i18n="adp_instructions">Instructions</h6><p>{{ prescription.instructions }}</p></div>{% endif %}
+        {% if prescription.follow_up_date %}<div class="prescription-block"><h6 data-i18n="adp_followup">Date de suivi</h6><p><i class="bi bi-calendar me-2 text-primary"></i>{{ prescription.follow_up_date|date:"j F Y" }}</p></div>{% endif %}
+        <small class="text-muted"><span data-i18n="adp_issued">Émise le</span> {{ prescription.created_at|date:"j F Y" }}</small>
+      </div>
+    </div>
+    {% elif appointment.status == 'accepte' %}<div class="alert alert-info"><i class="bi bi-hourglass me-2"></i><span data-i18n="adp_waiting_conf">Rendez-vous confirmé. L'ordonnance apparaîtra ici après votre consultation.</span></div>
+    {% elif appointment.status == 'en_attente' %}<div class="alert alert-warning"><i class="bi bi-clock me-2"></i><span data-i18n="adp_pending">En attente de confirmation du médecin.</span></div>{% endif %}
+    {% if appointment.status == 'termine' %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white py-3"><h5 class="mb-0"><i class="bi bi-star me-2 text-warning"></i><span data-i18n="{% if review %}adp_review_title{% else %}adp_leave_review{% endif %}">{% if review %}Votre Avis{% else %}Laisser un Avis{% endif %}</span></h5></div>
+      <div class="card-body">
+        {% if review %}
+        <div class="review-display">
+          <div class="stars mb-2">{% for i in "12345" %}<i class="bi bi-star{% if forloop.counter <= review.rating %}-fill text-warning{% endif %}"></i>{% endfor %} <span class="ms-2 text-muted">{{ review.rating }}/5</span></div>
+          {% if review.comment %}<p>{{ review.comment }}</p>{% endif %}
+          <small class="text-muted"><span data-i18n="adp_reviewed_on">Publié le</span> {{ review.created_at|date:"j F Y" }}</small>
+        </div>
+        {% else %}
+        <form method="POST">{% csrf_token %}<input type="hidden" name="action" value="review">
+          <div class="mb-3"><label class="form-label" data-i18n="adp_rating">Note</label>{{ review_form.rating }}</div>
+          <div class="mb-3"><label class="form-label" data-i18n="adp_comment">Commentaire</label>{{ review_form.comment }}</div>
+          <button type="submit" class="btn btn-warning"><i class="bi bi-star me-1"></i><span data-i18n="adp_submit_review">Soumettre</span></button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+</div>
+{% endblock %}

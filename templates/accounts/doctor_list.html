@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}My Doctor{% endblock %}
+{% block content %}
+<div class="page-header"><div class="container">
+  <h1><i class="bi bi-people me-2"></i><span data-i18n="dl_title">Trouver un Médecin</span></h1>
+  <p data-i18n="dl_sub">Recherchez par wilaya, commune ou spécialité</p>
+</div></div>
+<div class="container py-4"><div class="row g-4">
+  <div class="col-lg-3">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-funnel me-2 text-primary"></i><span data-i18n="dl_filter">Filtrer</span></h6></div>
+      <div class="card-body">
+        <form method="GET">
+          <div class="mb-3"><label class="form-label fw-semibold" data-i18n="nav_doctors">Nos Médecins</label>
+            <input type="text" name="search" class="form-control" data-i18n-placeholder="dl_name_search" placeholder="Rechercher..." value="{{ search_query }}"></div>
+          <div class="mb-3"><label class="form-label fw-semibold">Wilaya</label>
+            <select name="wilaya" class="form-select">
+              <option value="" data-i18n="dl_all_wilayas">Toutes les wilayas</option>
+              {% for code, name in wilayas %}<option value="{{ code }}" {% if wilaya_filter == code %}selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select></div>
+          <div class="mb-3"><label class="form-label fw-semibold" data-i18n="dl_commune">Commune / Ville</label>
+            <input type="text" name="commune" class="form-control" placeholder="Ex: Alger Centre" value="{{ commune_filter }}"></div>
+          <div class="mb-3"><label class="form-label fw-semibold">Spécialité</label>
+            <select name="specialization" class="form-select">
+              <option value="" data-i18n="dl_all_specs">Toutes les spécialités</option>
+              {% for key, name in specializations %}<option value="{{ key }}" {% if spec_filter == key %}selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select></div>
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i><span data-i18n="dl_search_btn">Rechercher</span></button>
+          {% if search_query or wilaya_filter or spec_filter or commune_filter %}
+          <a href="{% url 'doctor_list' %}" class="btn btn-outline-secondary w-100 mt-2" data-i18n="dl_clear">Effacer les filtres</a>{% endif %}
+        </form>
+      </div>
+    </div>
+    {% for ad in ads_sidebar %}
+    <div class="card border-0 mb-3" style="background:{{ ad.background_color }};color:{{ ad.text_color }}">
+      <div class="card-body text-center">
+        {% if ad.image %}<img src="{{ ad.image.url }}" alt="" class="img-fluid rounded mb-2" style="max-height:80px">{% endif %}
+        <div class="fw-bold">{{ ad.title }}</div>
+        {% if ad.description %}<small class="opacity-75 d-block mt-1">{{ ad.description }}</small>{% endif %}
+        {% if ad.link_url %}<a href="{{ ad.link_url }}" class="btn btn-sm mt-2" style="background:{{ ad.text_color }};color:{{ ad.background_color }}">{{ ad.link_text }}</a>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="col-lg-9">
+    {% if doctors %}
+    <div class="row g-4">
+      {% for doctor in doctors %}
+      <div class="col-md-6">
+        <div class="doctor-card">
+          <div class="doctor-card-header">
+            <div class="doctor-avatar">{{ doctor.user.first_name|first }}{{ doctor.user.last_name|first }}</div>
+            <div class="doctor-info">
+              <h5 class="mb-1">Dr. {{ doctor.user.get_full_name }}</h5>
+              <span class="badge badge-specialty">{{ doctor.get_specialization_display }}</span>
+            </div>
+          </div>
+          <div class="doctor-card-body">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="bi bi-geo-alt-fill text-danger"></i>
+              <span class="text-muted small"><strong>{{ doctor.get_wilaya_display }}</strong>{% if doctor.commune %} — {{ doctor.commune }}{% endif %}</span>
+            </div>
+            {% if doctor.bio %}<p class="text-muted small mb-2">{{ doctor.bio|truncatechars:90 }}</p>{% endif %}
+            <div class="doctor-meta">
+              <span><i class="bi bi-briefcase me-1 text-primary"></i>{{ doctor.years_of_experience }} <span data-i18n="doc_exp">ans</span></span>
+              <span><i class="bi bi-cash me-1 text-primary"></i>{{ doctor.consultation_fee }} <span data-i18n="doc_fee">DA</span></span>
+            </div>
+          </div>
+          <div class="doctor-card-footer">
+            <a href="{% url 'doctor_detail' doctor_id=doctor.id %}" class="btn btn-primary btn-sm w-100">
+              <i class="bi bi-calendar-check me-1"></i><span data-i18n="dl_book">Voir & Réserver</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><i class="bi bi-search"></i>
+      <h4 data-i18n="dl_not_found">Aucun médecin trouvé</h4>
+      <p data-i18n="dl_try">Essayez de modifier vos critères.</p>
+      <a href="{% url 'doctor_list' %}" class="btn btn-outline-primary" data-i18n="dl_clear">Effacer les filtres</a>
+    </div>
+    {% endif %}
+  </div>
+</div></div>
+{% endblock %}
