@@ -92,3 +92,7 @@ MESSAGE_TAGS = {
 CONTACT_PHONE    = '0556798952'
 CONTACT_WHATSAPP = '213556798952'
 CONTACT_EMAIL    = 'belarif.islam999@gmail.com'
+import dj_database_url
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.config(default=DATABASE_URL)
