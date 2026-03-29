@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.i18n import set_language
 from appointments import views as appt_views
+from accounts.statistics import statistics_view
 
 admin.site.site_header = "My Doctor"
 admin.site.site_title = "My Doctor"
@@ -11,6 +12,7 @@ admin.site.index_title = "Administration"
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin/statistiques/', statistics_view, name='statistics'),
     path('i18n/setlang/', set_language, name='set_language'),
     path('', appt_views.home, name='home'),
     path('tableau-de-bord/', appt_views.dashboard, name='dashboard'),
