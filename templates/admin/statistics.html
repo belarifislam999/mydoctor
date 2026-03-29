@@ -1,156 +1,206 @@
 {% extends "admin/base_site.html" %}
-{% block title %}Statistiques — My Doctor{% endblock %}
-
+{% block title %}Statistiques Medicaments — My Doctor{% endblock %}
 {% block extrastyle %}
 <style>
-.stat-box { background:white; border-radius:12px; padding:1.5rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,.08); border-left:4px solid #0066ff; }
-.stat-box.green { border-left-color:#00b96b; }
-.stat-box.orange { border-left-color:#f59e0b; }
-.stat-box.red { border-left-color:#ef4444; }
-.stat-box.purple { border-left-color:#8b5cf6; }
-.stat-number { font-size:2.5rem; font-weight:700; color:#0066ff; line-height:1; }
-.stat-number.green { color:#00b96b; }
-.stat-number.orange { color:#f59e0b; }
-.stat-number.purple { color:#8b5cf6; }
-.stat-label { font-size:.85rem; color:#64748b; margin-top:.25rem; }
-.med-bar { height:28px; background:linear-gradient(90deg,#0066ff,#60a5fa); border-radius:6px; display:flex; align-items:center; padding:0 .75rem; color:white; font-size:.8rem; font-weight:600; min-width:30px; transition:width .8s ease; }
-.med-row { display:flex; align-items:center; gap:1rem; margin-bottom:.6rem; }
-.med-name { width:200px; font-size:.875rem; font-weight:500; flex-shrink:0; }
-.med-count { width:40px; text-align:right; font-size:.875rem; color:#64748b; flex-shrink:0; }
-.section-title { font-size:1.1rem; font-weight:700; color:#1e2a3b; margin-bottom:1.25rem; padding-bottom:.5rem; border-bottom:2px solid #e2e8f0; }
-.diag-badge { background:#eff6ff; color:#1e40af; padding:.3rem .75rem; border-radius:20px; font-size:.8rem; margin:.2rem; display:inline-block; }
-.doctor-row { display:flex; align-items:center; justify-content:space-between; padding:.6rem 0; border-bottom:1px solid #f1f5f9; }
-.rank-num { width:28px; height:28px; border-radius:50%; background:#0066ff; color:white; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0; }
+.stat-box{background:white;border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,.08);border-left:4px solid #0066ff}
+.stat-box.green{border-left-color:#00b96b}.stat-box.orange{border-left-color:#f59e0b}.stat-box.purple{border-left-color:#8b5cf6}.stat-box.red{border-left-color:#ef4444}
+.stat-number{font-size:2.2rem;font-weight:700;color:#0066ff;line-height:1}
+.stat-number.green{color:#00b96b}.stat-number.orange{color:#f59e0b}.stat-number.purple{color:#8b5cf6}.stat-number.red{color:#ef4444}
+.stat-label{font-size:.82rem;color:#64748b;margin-top:.25rem}
+.section-card{background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:1.5rem}
+.section-title{font-size:1.05rem;font-weight:700;color:#1e2a3b;margin-bottom:1.25rem;padding-bottom:.5rem;border-bottom:2px solid #e2e8f0}
+.med-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
+.med-name{width:180px;font-size:.82rem;font-weight:500;flex-shrink:0}
+.med-bar-wrap{flex:1}
+.med-bar{height:24px;background:linear-gradient(90deg,#0066ff,#60a5fa);border-radius:6px;display:flex;align-items:center;padding:0 .5rem;color:white;font-size:.75rem;font-weight:600;min-width:24px;transition:width .6s ease}
+.med-count{width:35px;text-align:right;font-size:.82rem;color:#64748b;flex-shrink:0}
+.filter-bar{background:white;border-radius:12px;padding:1.25rem 1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:1.5rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end}
+.filter-bar label{font-size:.8rem;font-weight:600;color:#64748b;display:block;margin-bottom:.3rem}
+.filter-bar select,.filter-bar input{padding:.45rem .75rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.875rem;background:white}
+.filter-bar select:focus,.filter-bar input:focus{border-color:#0066ff;outline:none}
+.btn-filter{background:#0066ff;color:white;border:none;padding:.5rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer}
+.btn-filter:hover{background:#0052cc}
+.btn-secondary{background:#f1f5f9;color:#374151;border:1.5px solid #e2e8f0;padding:.45rem 1rem;border-radius:8px;font-size:.82rem;cursor:pointer;text-decoration:none;display:inline-block}
+.btn-success{background:#00b96b;color:white;border:none;padding:.5rem 1.25rem;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer}
+.search-result-badge{background:#dcfce7;color:#14532d;padding:.2rem .6rem;border-radius:8px;font-size:.75rem;font-weight:600}
+.wilaya-badge{background:#eff6ff;color:#1e40af;padding:.25rem .75rem;border-radius:10px;font-size:.78rem;font-weight:600}
+.tag{background:#f1f5f9;color:#374151;padding:.2rem .6rem;border-radius:6px;font-size:.75rem;margin:.1rem;display:inline-block}
 </style>
 {% endblock %}
 
 {% block content %}
 <div style="padding:1rem 0">
 
-<!-- En-tête -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem">
+<!-- En-tete -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
   <div>
-    <h1 style="font-size:1.75rem;font-weight:700;margin:0">📊 Statistiques des Médicaments</h1>
-    <p style="color:#64748b;margin:.25rem 0 0">Analyse complète des ordonnances et prescriptions</p>
+    <h1 style="font-size:1.6rem;font-weight:700;margin:0">
+      📊 Statistiques des Médicaments
+      {% if wilaya_name %}<span style="font-size:1rem;color:#0066ff;font-weight:500"> — {{ wilaya_name }}</span>{% endif %}
+    </h1>
+    <p style="color:#64748b;margin:.2rem 0 0;font-size:.875rem">Analyse complète des ordonnances et prescriptions</p>
   </div>
-  <a href="/admin/" class="button">← Retour Admin</a>
+  <a href="/admin/" class="btn-secondary">← Admin</a>
 </div>
 
-<!-- Stats générales -->
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem">
-  <div class="stat-box">
-    <div class="stat-number">{{ total_count }}</div>
-    <div class="stat-label">💊 Total Ordonnances</div>
+<!-- ═══ BARRE DE FILTRES ══════════════════════════════════ -->
+<form method="GET" class="filter-bar">
+  <!-- Filtre Wilaya -->
+  <div>
+    <label>🗺️ Filtrer par Wilaya</label>
+    <select name="wilaya">
+      <option value="">Toutes les wilayas</option>
+      {% for code, name in wilayas %}
+      <option value="{{ code }}" {% if selected_wilaya == code %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
   </div>
-  <div class="stat-box green">
-    <div class="stat-number green">{{ today_count }}</div>
-    <div class="stat-label">📅 Aujourd'hui</div>
+
+  <!-- Recherche médicament -->
+  <div>
+    <label>🔍 Rechercher un Médicament</label>
+    <input type="text" name="med" value="{{ search_med }}" placeholder="Ex: Paracetamol, Amox...">
   </div>
-  <div class="stat-box orange">
-    <div class="stat-number orange">{{ month_count }}</div>
-    <div class="stat-label">📆 Ce Mois</div>
+
+  <div style="display:flex;gap:.5rem;align-items:flex-end">
+    <button type="submit" class="btn-filter">🔍 Rechercher</button>
+    <!-- Top médicaments par wilaya -->
+    <button type="submit" name="top_wilaya" value="1" class="btn-success">🏆 Top / Wilaya</button>
+    {% if selected_wilaya or search_med or top_wilaya_mode %}
+    <a href="/admin/statistiques/" class="btn-secondary">✕ Effacer</a>
+    {% endif %}
   </div>
-  <div class="stat-box purple">
-    <div class="stat-number purple">{{ year_count }}</div>
-    <div class="stat-label">🗓️ Cette Année</div>
+</form>
+
+<!-- ═══ RÉSULTAT RECHERCHE MÉDICAMENT ════════════════════ -->
+{% if search_med %}
+<div class="section-card" style="border:2px solid #0066ff">
+  <div class="section-title">🔍 Résultats pour "{{ search_med }}" — {{ search_total }} prescription(s)</div>
+  {% if search_details %}
+  <div style="margin-bottom:1rem">
+    <span style="font-size:1.5rem;font-weight:700;color:#0066ff">{{ search_total }}</span>
+    <span style="color:#64748b;font-size:.9rem"> fois prescrit</span>
   </div>
-  <div class="stat-box red">
-    <div class="stat-number" style="color:#ef4444">{{ patients_with_presc }}</div>
-    <div class="stat-label">👥 Patients traités</div>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+      <thead><tr style="background:#f8fafc">
+        <th style="padding:.6rem;text-align:left;border-bottom:2px solid #e2e8f0">Médicament</th>
+        <th style="padding:.6rem;text-align:left;border-bottom:2px solid #e2e8f0">Médecin</th>
+        <th style="padding:.6rem;text-align:left;border-bottom:2px solid #e2e8f0">Patient</th>
+        <th style="padding:.6rem;text-align:left;border-bottom:2px solid #e2e8f0">Wilaya</th>
+        <th style="padding:.6rem;text-align:left;border-bottom:2px solid #e2e8f0">Date</th>
+      </tr></thead>
+      <tbody>
+        {% for item in search_details %}
+        <tr style="border-bottom:1px solid #f1f5f9">
+          <td style="padding:.6rem"><span class="search-result-badge">{{ item.med }}</span></td>
+          <td style="padding:.6rem">Dr. {{ item.doctor }}</td>
+          <td style="padding:.6rem">{{ item.patient }}</td>
+          <td style="padding:.6rem"><span class="wilaya-badge">{{ item.wilaya }}</span></td>
+          <td style="padding:.6rem;color:#64748b">{{ item.date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <div class="stat-box">
-    <div class="stat-number">{{ completed_appointments }}</div>
-    <div class="stat-label">✅ Consultations terminées</div>
+  {% else %}
+  <p style="color:#64748b;text-align:center;padding:2rem">Aucune prescription trouvée pour "{{ search_med }}".</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ═══ TOP MÉDICAMENTS PAR WILAYA ════════════════════════ -->
+{% if top_wilaya_mode %}
+<div class="section-card" style="border:2px solid #00b96b">
+  <div class="section-title">🏆 Top 3 Médicaments par Wilaya</div>
+  {% if wilaya_top_meds %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem">
+    {% for wilaya_name_item, tops in wilaya_top_meds.items %}
+    <div style="background:#f8fafc;border-radius:8px;padding:1rem;border:1px solid #e2e8f0">
+      <div style="font-weight:600;font-size:.85rem;color:#1e2a3b;margin-bottom:.6rem">
+        📍 {{ wilaya_name_item }}
+      </div>
+      {% for med, count in tops %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;border-bottom:1px solid #e2e8f0">
+        <span style="font-size:.8rem">{{ forloop.counter }}. {{ med }}</span>
+        <span class="wilaya-badge">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
   </div>
+  {% else %}
+  <p style="color:#64748b;text-align:center;padding:2rem">Aucune donnée disponible par wilaya.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ═══ STATS GÉNÉRALES ═══════════════════════════════════ -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem">
+  <div class="stat-box"><div class="stat-number">{{ total_count }}</div><div class="stat-label">💊 Total Ordonnances</div></div>
+  <div class="stat-box green"><div class="stat-number green">{{ today_count }}</div><div class="stat-label">📅 Aujourd'hui</div></div>
+  <div class="stat-box orange"><div class="stat-number orange">{{ month_count }}</div><div class="stat-label">📆 Ce Mois</div></div>
+  <div class="stat-box purple"><div class="stat-number purple">{{ year_count }}</div><div class="stat-label">🗓️ Cette Année</div></div>
+  <div class="stat-box red"><div class="stat-number red">{{ patients_presc }}</div><div class="stat-label">👥 Patients traités</div></div>
+  <div class="stat-box"><div class="stat-number">{{ completed }}</div><div class="stat-label">✅ Consultations terminées</div></div>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
 
-  <!-- Top Médicaments -->
-  <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-    <div class="section-title">💊 Top 20 Médicaments les Plus Prescrits</div>
+  <!-- Top 20 Médicaments -->
+  <div class="section-card">
+    <div class="section-title">💊 Top 20 Médicaments{% if wilaya_name %} — {{ wilaya_name }}{% endif %}</div>
     {% if top_medications %}
-      {% with max_count=top_medications.0.1 %}
       {% for med_name, count in top_medications %}
       <div class="med-row">
         <div class="med-name">{{ forloop.counter }}. {{ med_name }}</div>
-        <div style="flex:1">
-          <div class="med-bar" style="width:{% widthratio count max_count 100 %}%">
-            {% if count > 2 %}{{ count }}{% endif %}
+        <div class="med-bar-wrap">
+          <div class="med-bar" style="width:{% widthratio count max_med_count 100 %}%">
+            {% if count > 1 %}{{ count }}{% endif %}
           </div>
         </div>
         <div class="med-count">{{ count }}</div>
       </div>
       {% endfor %}
-      {% endwith %}
     {% else %}
-      <p style="color:#64748b;text-align:center;padding:2rem">Aucune ordonnance enregistrée pour l'instant.</p>
+      <p style="color:#64748b;text-align:center;padding:2rem">Aucune ordonnance enregistrée.</p>
     {% endif %}
   </div>
 
   <!-- Top Diagnostics -->
-  <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-    <div class="section-title">🔬 Top 10 Diagnostics les Plus Fréquents</div>
+  <div class="section-card">
+    <div class="section-title">🔬 Top 10 Diagnostics{% if wilaya_name %} — {{ wilaya_name }}{% endif %}</div>
     {% if top_diagnoses %}
       {% for diag, count in top_diagnoses %}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
-        <div style="font-size:.875rem">{{ forloop.counter }}. {{ diag|truncatechars:40 }}</div>
-        <span style="background:#dbeafe;color:#1e40af;padding:.2rem .6rem;border-radius:10px;font-size:.75rem;font-weight:600">{{ count }}</span>
+        <div style="font-size:.82rem;flex:1;margin-right:.5rem">{{ forloop.counter }}. {{ diag }}</div>
+        <span style="background:#dbeafe;color:#1e40af;padding:.2rem .6rem;border-radius:8px;font-size:.75rem;font-weight:600;flex-shrink:0">{{ count }}</span>
       </div>
       {% endfor %}
     {% else %}
-      <p style="color:#64748b;text-align:center;padding:2rem">Aucun diagnostic enregistré.</p>
+      <p style="color:#64748b;text-align:center;padding:2rem">Aucun diagnostic.</p>
     {% endif %}
   </div>
 
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
-
-  <!-- Statistiques par médecin -->
-  <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-    <div class="section-title">🩺 Ordonnances par Médecin</div>
-    {% if doctors_stats %}
-      {% for item in doctors_stats %}
-      {% if item.prescriptions > 0 %}
-      <div class="doctor-row">
-        <div style="display:flex;align-items:center;gap:.75rem">
-          <div class="rank-num">{{ forloop.counter }}</div>
-          <div>
-            <div style="font-weight:600;font-size:.875rem">Dr. {{ item.doctor.get_full_name }}</div>
-            <div style="font-size:.75rem;color:#64748b">{{ item.patients }} patient(s)</div>
-          </div>
-        </div>
-        <span style="background:#dcfce7;color:#14532d;padding:.3rem .75rem;border-radius:10px;font-size:.8rem;font-weight:600">
-          {{ item.prescriptions }} ordonnance(s)
-        </span>
+<!-- Statistiques par médecin -->
+<div class="section-card">
+  <div class="section-title">🩺 Ordonnances par Médecin{% if wilaya_name %} — {{ wilaya_name }}{% endif %}</div>
+  {% for item in doctors_stats %}{% if item.prescriptions > 0 %}
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid #f1f5f9">
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <div style="width:26px;height:26px;border-radius:50%;background:#0066ff;color:white;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">{{ forloop.counter }}</div>
+      <div>
+        <div style="font-weight:600;font-size:.875rem">Dr. {{ item.doctor.get_full_name }}</div>
+        <div style="font-size:.75rem;color:#64748b">{{ item.patients }} patient(s)</div>
       </div>
-      {% endif %}
-      {% empty %}
-      <p style="color:#64748b;text-align:center;padding:2rem">Aucun médecin avec des ordonnances.</p>
-      {% endfor %}
-    {% else %}
-      <p style="color:#64748b;text-align:center;padding:2rem">Aucune donnée disponible.</p>
-    {% endif %}
+    </div>
+    <span style="background:#dcfce7;color:#14532d;padding:.3rem .75rem;border-radius:8px;font-size:.8rem;font-weight:600">{{ item.prescriptions }} ordonnance(s)</span>
   </div>
-
-  <!-- Statistiques par wilaya -->
-  <div style="background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-    <div class="section-title">🗺️ Ordonnances par Wilaya</div>
-    {% if wilaya_stats %}
-      {% for item in wilaya_stats %}
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f1f5f9">
-        <div style="font-size:.875rem">{{ item.appointment__doctor__doctor_profile__wilaya }}</div>
-        <span style="background:#fef3c7;color:#92400e;padding:.2rem .6rem;border-radius:10px;font-size:.75rem;font-weight:600">
-          {{ item.total }}
-        </span>
-      </div>
-      {% endfor %}
-    {% else %}
-      <p style="color:#64748b;text-align:center;padding:2rem">Aucune donnée par wilaya.</p>
-    {% endif %}
-  </div>
-
+  {% endif %}{% empty %}
+  <p style="color:#64748b;text-align:center;padding:2rem">Aucun médecin avec des ordonnances.</p>
+  {% endfor %}
 </div>
 
 </div>
