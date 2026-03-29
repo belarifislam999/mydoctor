@@ -1,0 +1,109 @@
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
+from accounts.models import User, DoctorProfile
+from .models import Appointment, TimeSlot
+from django.utils import timezone
+
+
+# ── تسجيل الدخول ──────────────────────────────────────────
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_login(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    user = authenticate(username=username, password=password)
+    if user:
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username,
+            'role': user.role,
+            'full_name': user.get_full_name(),
+        })
+    return Response({'error': 'Identifiants incorrects'}, status=400)
+
+
+# ── قائمة الأطباء ──────────────────────────────────────────
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_doctors(request):
+    doctors = User.objects.filter(role='doctor').select_related('doctor_profile')
+    data = []
+    for doc in doctors:
+        try:
+            profile = doc.doctor_profile
+            data.append({
+                'id': doc.id,
+                'full_name': doc.get_full_name(),
+                'specialization': profile.specialization,
+                'wilaya': profile.get_wilaya_display(),
+                'commune': profile.commune,
+                'phone': profile.phone,
+                'photo': request.build_absolute_uri(profile.photo.url) if profile.photo else None,
+            })
+        except Exception:
+            pass
+    return Response(data)
+
+
+# ── مواعيد المريض ──────────────────────────────────────────
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_my_appointments(request):
+    appointments = Appointment.objects.filter(
+        patient=request.user
+    ).select_related('doctor__doctor_profile').order_by('-date', '-time_slot__start_time')
+    data = []
+    for apt in appointments:
+        data.append({
+            'id': apt.id,
+            'doctor': apt.doctor.get_full_name(),
+            'specialization': apt.doctor.doctor_profile.specialization,
+            'date': str(apt.date),
+            'time': str(apt.time_slot.start_time) if apt.time_slot else '',
+            'status': apt.status,
+        })
+    return Response(data)
+
+
+# ── حجز موعد ──────────────────────────────────────────────
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_book_appointment(request):
+    doctor_id = request.data.get('doctor_id')
+    slot_id = request.data.get('slot_id')
+    reason = request.data.get('reason', '')
+    try:
+        doctor = User.objects.get(id=doctor_id, role='doctor')
+        slot = TimeSlot.objects.get(id=slot_id, is_available=True)
+        apt = Appointment.objects.create(
+            patient=request.user,
+            doctor=doctor,
+            time_slot=slot,
+            date=slot.date,
+            reason=reason,
+            status='en_attente',
+        )
+        slot.is_available = False
+        slot.save()
+        return Response({'success': True, 'appointment_id': apt.id})
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+
+# ── المواعيد المتاحة ───────────────────────────────────────
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_slots(request, doctor_id):
+    slots = TimeSlot.objects.filter(
+        doctor_id=doctor_id,
+        is_available=True,
+        date__gte=timezone.now().date()
+    ).order_by('date', 'start_time')
+    data = [{'id': s.id, 'date': str(s.date), 'time': str(s.start_time)} for s in slots]
+    return Response(data)

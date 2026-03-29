@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.views.i18n import set_language
 from appointments import views as appt_views
 from accounts.statistics import statistics_view
+from appointments.api import api_login, api_doctors, api_my_appointments, api_book_appointment, api_slots
 
 admin.site.site_header = "My Doctor"
 admin.site.site_title = "My Doctor"
@@ -18,4 +19,10 @@ urlpatterns = [
     path('tableau-de-bord/', appt_views.dashboard, name='dashboard'),
     path('', include('accounts.urls')),
     path('', include('appointments.urls')),
+    # API
+    path('api/login/', api_login, name='api_login'),
+    path('api/doctors/', api_doctors, name='api_doctors'),
+    path('api/appointments/', api_my_appointments, name='api_appointments'),
+    path('api/book/', api_book_appointment, name='api_book'),
+    path('api/slots/<int:doctor_id>/', api_slots, name='api_slots'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
