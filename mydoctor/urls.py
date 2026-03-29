@@ -11,8 +11,8 @@ admin.site.site_title = "My Doctor"
 admin.site.index_title = "Administration"
 
 urlpatterns = [
+    path('statistiques/', statistics_view, name='statistics'),
     path('admin/', admin.site.urls),
-    path('admin/statistiques/', statistics_view, name='statistics'),
     path('i18n/setlang/', set_language, name='set_language'),
     path('', appt_views.home, name='home'),
     path('tableau-de-bord/', appt_views.dashboard, name='dashboard'),
