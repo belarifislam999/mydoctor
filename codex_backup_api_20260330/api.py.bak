@@ -1,15 +1,13 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
-from accounts.models import User, DoctorProfile
+from accounts.models import User
 from .models import Appointment, TimeSlot
 from django.utils import timezone
 
 
-# ── تسجيل الدخول ──────────────────────────────────────────
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_login(request):
@@ -28,36 +26,27 @@ def api_login(request):
     return Response({'error': 'Identifiants incorrects'}, status=400)
 
 
-# ── قائمة الأطباء ──────────────────────────────────────────
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def api_doctors(request):
-    doctors = User.objects.filter(role='doctor').select_related('doctor_profile')
     data = []
-    for doc in doctors:
+    for doc in User.objects.filter(role='doctor'):
         try:
             profile = doc.doctor_profile
             data.append({
-                'id':               doc.id,
-                'full_name':        doc.get_full_name(),
-                'specialization':   profile.get_specialization_display(),
-                'wilaya':           profile.get_wilaya_display(),
-                'wilaya_code':      profile.wilaya,
-                'commune':          profile.commune,
-                'bio':              profile.bio,
-                'fee':              float(profile.consultation_fee),
-                'years_experience': profile.years_of_experience,
-                'clinic_address':   profile.clinic_address,
-                'is_available':     profile.is_available,
-                'phone':            doc.phone_number or '',
-                'photo':            request.build_absolute_uri(doc.profile_picture.url) if doc.profile_picture else None,
+                'id': doc.id,
+                'full_name': doc.get_full_name() or doc.username,
+                'specialization': profile.specialization or '',
+                'wilaya': profile.get_wilaya_display() or '',
+                'commune': profile.commune or '',
+                'phone': profile.phone or '',
+                'photo': request.build_absolute_uri(profile.photo.url) if profile.photo else None,
             })
         except Exception:
-            pass
+            continue
     return Response(data)
 
 
-# ── مواعيد المريض ──────────────────────────────────────────
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_my_appointments(request):
@@ -67,25 +56,16 @@ def api_my_appointments(request):
     data = []
     for apt in appointments:
         data.append({
-             'id':             doc.id,
-             'full_name':      doc.get_full_name(),
-             'specialization': profile.get_specialization_display(),
-             'wilaya':         profile.get_wilaya_display(),
-             'wilaya_code':    profile.wilaya,
-             'commune':        profile.commune,
-              'bio':            profile.bio,
-             'fee':            float(profile.consultation_fee),
-             'years_experience': profile.years_of_experience,
-             'clinic_address': profile.clinic_address,  # نص كامل أو رابط Google Maps
-             'is_available':   profile.is_available,
-             'phone':          doc.phone_number or '',
-             'photo':          request.build_absolute_uri(doc.profile_picture.url) if doc.profile_picture else None,
+            'id': apt.id,
+            'doctor': apt.doctor.get_full_name(),
+            'specialization': apt.doctor.doctor_profile.specialization,
+            'date': str(apt.date),
+            'time': str(apt.time_slot.start_time) if apt.time_slot else '',
+            'status': apt.status,
         })
-
     return Response(data)
 
 
-# ── حجز موعد ──────────────────────────────────────────────
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def api_book_appointment(request):
@@ -110,7 +90,6 @@ def api_book_appointment(request):
         return Response({'error': str(e)}, status=400)
 
 
-# ── المواعيد المتاحة ───────────────────────────────────────
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def api_slots(request, doctor_id):

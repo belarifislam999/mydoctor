@@ -105,7 +105,11 @@ class DoctorProfile(models.Model):
     bio       = models.TextField(blank=True, verbose_name="Biographie")
     years_of_experience = models.PositiveIntegerField(default=0, verbose_name="Années d'expérience")
     consultation_fee    = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, verbose_name="Tarif (DA)")
-    clinic_address = models.TextField(blank=True, verbose_name="Adresse du cabinet")
+    clinic_address = models.TextField(
+    blank=True,
+    verbose_name="Adresse du cabinet",
+    help_text="Vous pouvez mettre du texte ou un lien Google Maps (ex: https://maps.google.com/...)"
+     )
     is_available   = models.BooleanField(default=True, verbose_name="Disponible")
 
     def __str__(self):

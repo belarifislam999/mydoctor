@@ -1,0 +1,225 @@
+﻿from django.contrib.auth import authenticate
+from django.db.models import Q
+from django.utils import timezone
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+
+from accounts.models import User
+from .models import Appointment, TimeSlot
+
+
+def _find_user_by_identifier(identifier):
+    identifier = (identifier or '').strip()
+    if not identifier:
+        return None
+    return User.objects.filter(
+        Q(username=identifier) |
+        Q(email__iexact=identifier) |
+        Q(phone_number=identifier)
+    ).first()
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_login(request):
+    identifier = (
+        request.data.get('username')
+        or request.data.get('email')
+        or request.data.get('phone')
+        or ''
+    )
+    password = request.data.get('password')
+    user = _find_user_by_identifier(identifier)
+    if user:
+        user = authenticate(username=user.username, password=password)
+    if user:
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.id,
+            'username': user.username,
+            'role': user.role,
+            'full_name': user.get_full_name(),
+        })
+    return Response({'error': 'Identifiants incorrects'}, status=400)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_doctors(request):
+    search = (request.GET.get('search') or '').strip()
+    wilaya = (request.GET.get('wilaya') or '').strip()
+    specialization = (request.GET.get('specialization') or '').strip()
+
+    doctors = User.objects.filter(role='doctor').select_related('doctor_profile')
+    if search:
+        doctors = doctors.filter(
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search) |
+            Q(username__icontains=search) |
+            Q(doctor_profile__commune__icontains=search)
+        )
+    if wilaya:
+        doctors = doctors.filter(doctor_profile__wilaya=wilaya)
+    if specialization:
+        doctors = doctors.filter(doctor_profile__specialization=specialization)
+
+    data = []
+    for doc in doctors:
+        try:
+            profile = doc.doctor_profile
+            data.append({
+                'id': doc.id,
+                'full_name': doc.get_full_name() or doc.username,
+                'specialization': profile.get_specialization_display() or profile.specialization or '',
+                'wilaya': profile.get_wilaya_display() or '',
+                'commune': profile.commune or '',
+                'bio': profile.bio or '',
+                'fee': float(profile.consultation_fee or 0),
+                'is_available': bool(profile.is_available),
+                'phone': doc.phone_number or '',
+                'photo': request.build_absolute_uri(doc.profile_picture.url) if getattr(doc, 'profile_picture', None) else None,
+            })
+        except Exception:
+            continue
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_my_appointments(request):
+    appointments = Appointment.objects.filter(
+        patient=request.user
+    ).select_related('doctor__doctor_profile', 'time_slot').order_by('-time_slot__date', '-time_slot__start_time')
+    data = []
+    for apt in appointments:
+        data.append({
+            'id': apt.id,
+            'doctor': apt.doctor.get_full_name() or apt.doctor.username,
+            'doctor_name': apt.doctor.get_full_name() or apt.doctor.username,
+            'specialization': getattr(apt.doctor.doctor_profile, 'get_specialization_display', lambda: '')(),
+            'date': str(apt.time_slot.date) if apt.time_slot else '',
+            'time': str(apt.time_slot.start_time) if apt.time_slot else '',
+            'status': apt.status,
+        })
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_book_appointment(request):
+    doctor_id = request.data.get('doctor_id')
+    slot_id = request.data.get('slot_id')
+    reason = request.data.get('reason', '')
+    try:
+        doctor = User.objects.get(id=doctor_id, role='doctor')
+        slot = TimeSlot.objects.get(id=slot_id, doctor=doctor, is_booked=False)
+        apt = Appointment.objects.create(
+            patient=request.user,
+            doctor=doctor,
+            time_slot=slot,
+            reason=reason,
+            status=Appointment.STATUS_PENDING,
+        )
+        slot.is_booked = True
+        slot.save(update_fields=['is_booked'])
+        return Response({'success': True, 'appointment_id': apt.id})
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_slots(request, doctor_id):
+    slots = TimeSlot.objects.filter(
+        doctor_id=doctor_id,
+        is_booked=False,
+        date__gte=timezone.now().date()
+    ).order_by('date', 'start_time')
+    data = [
+        {
+            'id': s.id,
+            'date': str(s.date),
+            'time': str(s.start_time),
+            'start_time': str(s.start_time),
+            'end_time': str(s.end_time),
+            'is_booked': s.is_booked,
+        }
+        for s in slots
+    ]
+    return Response(data)
+
+@api_view([''GET'', ''PUT''])
+@permission_classes([IsAuthenticated])
+def api_profile(request):
+    user = request.user
+    if request.method == 'GET':
+        data = {
+            'username': user.username,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'full_name': user.get_full_name() or user.username,
+            'email': user.email or '',
+            'phone_number': user.phone_number or '',
+            'role': user.role,
+        }
+        if user.role == 'doctor' and hasattr(user, 'doctor_profile'):
+            profile = user.doctor_profile
+            data.update({
+                'specialization': profile.specialization or '',
+                'wilaya': profile.wilaya or '',
+                'commune': profile.commune or '',
+                'bio': profile.bio or '',
+                'consultation_fee': float(profile.consultation_fee or 0),
+                'is_available': bool(profile.is_available),
+            })
+        elif user.role == 'patient' and hasattr(user, 'patient_profile'):
+            profile = user.patient_profile
+            data.update({
+                'wilaya': profile.wilaya or '',
+                'blood_group': profile.blood_group or '',
+                'allergies': profile.allergies or '',
+            })
+        return Response(data)
+
+    payload = request.data
+    email = (payload.get('email') or '').strip().lower()
+    phone_number = (payload.get('phone_number') or '').strip()
+
+    if email and User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+        return Response({'error': 'Cet email est deja utilise.'}, status=400)
+    if phone_number and User.objects.filter(phone_number=phone_number).exclude(pk=user.pk).exists():
+        return Response({'error': 'Ce numero est deja utilise.'}, status=400)
+
+    user.first_name = (payload.get('first_name') or '').strip()
+    user.last_name = (payload.get('last_name') or '').strip()
+    user.email = email
+    user.phone_number = phone_number or None
+    user.save(update_fields=['first_name', 'last_name', 'email', 'phone_number'])
+
+    return Response({
+        'success': True,
+        'full_name': user.get_full_name() or user.username,
+        'email': user.email or '',
+        'phone_number': user.phone_number or '',
+    })
+
+
+@api_view([''POST''])
+@permission_classes([IsAuthenticated])
+def api_change_password(request):
+    current_password = request.data.get('current_password') or ''
+    new_password = request.data.get('new_password') or ''
+
+    if not request.user.check_password(current_password):
+        return Response({'error': 'Mot de passe actuel incorrect.'}, status=400)
+    if len(new_password) < 6:
+        return Response({'error': 'Le nouveau mot de passe doit contenir au moins 6 caracteres.'}, status=400)
+
+    request.user.set_password(new_password)
+    request.user.save(update_fields=['password'])
+    Token.objects.filter(user=request.user).delete()
+    token = Token.objects.create(user=request.user)
+    return Response({'success': True, 'token': token.key})
