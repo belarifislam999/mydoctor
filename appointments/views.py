@@ -196,7 +196,7 @@ def patient_dashboard(request):
 @login_required
 def book_appointment(request, slot_id):
     from django.db import transaction
-    
+
     slot = get_object_or_404(TimeSlot, id=slot_id)
 
     if not request.user.is_patient():
@@ -209,6 +209,18 @@ def book_appointment(request, slot_id):
 
     if slot.is_past():
         messages.error(request, 'Ce créneau est dépassé.')
+        return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
+
+    # ── منع الحجز المكرر ──────────────────────────────────
+    existing = Appointment.objects.filter(
+        patient=request.user,
+        doctor=slot.doctor,
+        time_slot__date=slot.date,
+        status__in=['en_attente', 'accepte']
+    ).exists()
+
+    if existing:
+        messages.error(request, 'Vous avez déjà un rendez-vous avec ce médecin ce jour-là.')
         return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
 
     if request.method == 'POST':
