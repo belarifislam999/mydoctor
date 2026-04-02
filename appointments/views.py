@@ -195,32 +195,55 @@ def patient_dashboard(request):
 
 @login_required
 def book_appointment(request, slot_id):
+    from django.db import transaction
+    
     slot = get_object_or_404(TimeSlot, id=slot_id)
+
     if not request.user.is_patient():
         messages.error(request, 'Seuls les patients peuvent réserver.')
         return redirect('doctor_list')
+
     if slot.is_booked:
         messages.error(request, 'Ce créneau est déjà réservé.')
         return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
+
     if slot.is_past():
         messages.error(request, 'Ce créneau est dépassé.')
         return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
+
     if request.method == 'POST':
         form = AppointmentBookingForm(request.POST)
         if form.is_valid():
-            appt = form.save(commit=False)
-            appt.patient   = request.user
-            appt.doctor    = slot.doctor
-            appt.time_slot = slot
-            appt.status    = Appointment.STATUS_PENDING
-            appt.save()
-            slot.is_booked = True
-            slot.save()
-            messages.success(request, f'Rendez-vous réservé avec Dr. {slot.doctor.last_name}. En attente de confirmation.')
-            return redirect('patient_dashboard')
+            try:
+                with transaction.atomic():
+                    slot_locked = TimeSlot.objects.select_for_update().get(id=slot_id)
+
+                    if slot_locked.is_booked or Appointment.objects.filter(time_slot=slot_locked).exists():
+                        messages.error(request, 'Désolé, ce créneau vient d\'être réservé. Choisissez un autre.')
+                        return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
+
+                    appt = form.save(commit=False)
+                    appt.patient   = request.user
+                    appt.doctor    = slot_locked.doctor
+                    appt.time_slot = slot_locked
+                    appt.status    = 'en_attente'
+                    appt.save()
+
+                    slot_locked.is_booked = True
+                    slot_locked.save()
+
+                messages.success(request, f'Rendez-vous réservé avec Dr. {slot.doctor.last_name}. En attente de confirmation.')
+                return redirect('patient_dashboard')
+
+            except Exception:
+                messages.error(request, 'Une erreur est survenue. Veuillez réessayer.')
+                return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
     else:
         form = AppointmentBookingForm()
-    return render(request, 'appointments/book_appointment.html', {'form': form, 'slot': slot, 'doctor': slot.doctor})
+
+    return render(request, 'appointments/book_appointment.html', {
+        'form': form, 'slot': slot, 'doctor': slot.doctor
+    })
 
 
 @login_required
