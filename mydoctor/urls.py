@@ -5,10 +5,14 @@ from django.conf.urls.static import static
 from django.views.i18n import set_language
 from appointments import views as appt_views
 from accounts.statistics import statistics_view
-from appointments.api import api_login, api_doctors, api_my_appointments, api_book_appointment, api_slots
+from appointments.api import (
+    api_login, api_register, api_doctors, api_my_appointments,
+    api_book_appointment, api_slots,
+    api_accept_appointment, api_reject_appointment,
+)
 
 admin.site.site_header = "My Doctor"
-admin.site.site_title = "My Doctor"
+admin.site.site_title  = "My Doctor"
 admin.site.index_title = "Administration"
 
 urlpatterns = [
@@ -20,9 +24,12 @@ urlpatterns = [
     path('', include('accounts.urls')),
     path('', include('appointments.urls')),
     # API
-    path('api/login/', api_login, name='api_login'),
-    path('api/doctors/', api_doctors, name='api_doctors'),
-    path('api/appointments/', api_my_appointments, name='api_appointments'),
-    path('api/book/', api_book_appointment, name='api_book'),
-    path('api/slots/<int:doctor_id>/', api_slots, name='api_slots'),
+    path('api/login/',    api_login,    name='api_login'),
+    path('api/register/', api_register, name='api_register'),
+    path('api/doctors/',  api_doctors,  name='api_doctors'),
+    path('api/appointments/',      api_my_appointments,  name='api_appointments'),
+    path('api/book/',              api_book_appointment, name='api_book'),
+    path('api/slots/<int:doctor_id>/', api_slots,        name='api_slots'),
+    path('api/appointments/<int:appointment_id>/accept/', api_accept_appointment, name='api_accept'),
+    path('api/appointments/<int:appointment_id>/reject/', api_reject_appointment, name='api_reject'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

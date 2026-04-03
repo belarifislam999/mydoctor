@@ -105,6 +105,7 @@ class DoctorProfile(models.Model):
     bio       = models.TextField(blank=True, verbose_name="Biographie")
     years_of_experience = models.PositiveIntegerField(default=0, verbose_name="Années d'expérience")
     consultation_fee    = models.DecimalField(max_digits=8, decimal_places=2, default=0.00, verbose_name="Tarif (DA)")
+    location_url = models.URLField(blank=True, null=True, verbose_name="Lien Google Maps")
     clinic_address = models.TextField(
     blank=True,
     verbose_name="Adresse du cabinet",

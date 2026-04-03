@@ -2,86 +2,224 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+from django.db import transaction
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from accounts.models import User, DoctorProfile
 from .models import Appointment, TimeSlot
 from django.utils import timezone
+from django.db.models import Q
+
+
+# ── تسجيل حساب جديد (مريض) ────────────────────────────────
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_register(request):
+    username   = request.data.get('username', '').strip()
+    email      = request.data.get('email', '').strip()
+    password   = request.data.get('password', '')
+    full_name  = request.data.get('full_name', '').strip()
+    first_name = request.data.get('first_name', '').strip()
+    last_name  = request.data.get('last_name', '').strip()
+
+    if full_name and not first_name:
+        parts      = full_name.split(' ', 1)
+        first_name = parts[0]
+        last_name  = parts[1] if len(parts) > 1 else ''
+
+    if not username or not email or not password:
+        return Response({'error': 'username, email et password sont obligatoires'}, status=400)
+    if User.objects.filter(username=username).exists():
+        return Response({'error': "Ce nom d'utilisateur est déjà pris"}, status=400)
+    if User.objects.filter(email=email).exists():
+        return Response({'error': 'Cet email est déjà utilisé'}, status=400)
+    if len(password) < 6:
+        return Response({'error': 'Le mot de passe doit contenir au moins 6 caractères'}, status=400)
+    try:
+        user = User.objects.create_user(
+            username=username, email=email, password=password,
+            first_name=first_name, last_name=last_name, role='patient',
+        )
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({
+            'message': 'Compte créé avec succès', 'token': token.key,
+            'user_id': user.id, 'username': user.username,
+            'role': user.role, 'full_name': user.get_full_name(),
+        }, status=201)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
 
 
 # ── تسجيل الدخول ──────────────────────────────────────────
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def api_login(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
-    user = authenticate(username=username, password=password)
-    if user:
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user_id': user.id,
-            'username': user.username,
-            'role': user.role,
-            'full_name': user.get_full_name(),
-        })
-    return Response({'error': 'Identifiants incorrects'}, status=400)
+    identifier = request.data.get('username', '').strip()
+    password   = request.data.get('password', '')
+    user = authenticate(username=identifier, password=password)
+    if not user:
+        try:
+            u = User.objects.get(Q(email=identifier) | Q(phone_number=identifier))
+            user = authenticate(username=u.username, password=password)
+        except User.DoesNotExist:
+            user = None
+    if not user:
+        return Response({'error': 'Identifiants incorrects'}, status=400)
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({
+        'token': token.key, 'user_id': user.id,
+        'username': user.username, 'role': user.role,
+        'full_name': user.get_full_name(),
+    })
 
 
-# ── قائمة الأطباء ──────────────────────────────────────────
+# ── خريطة التخصصات ────────────────────────────────────────
+SPEC_MAP = {
+    'médecin généraliste': 'generaliste', 'medecin generaliste': 'generaliste',
+    'généraliste': 'generaliste', 'generaliste': 'generaliste',
+    'cardiologie': 'cardiologie', 'cardiologue': 'cardiologie',
+    'dermatologie': 'dermatologie', 'dermatologue': 'dermatologie',
+    'neurologie': 'neurologie', 'neurologue': 'neurologie',
+    'orthopédie': 'orthopedie', 'orthopediste': 'orthopedie',
+    'pédiatrie': 'pediatrie', 'pediatrie': 'pediatrie',
+    'psychiatrie': 'psychiatrie', 'gynécologie': 'gynecologie',
+    'gynecologie': 'gynecologie', 'ophtalmologie': 'ophtalmologie',
+    'orl': 'orl', 'radiologie': 'radiologie', 'oncologie': 'oncologie',
+    'urologie': 'urologie', 'dentiste': 'dentiste', 'autre': 'autre',
+}
+
+
+# ── قائمة الأطباء مع فلترة ────────────────────────────────
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def api_doctors(request):
-    doctors = User.objects.filter(role='doctor').select_related('doctor_profile')
+    wilaya = request.query_params.get('wilaya', '').strip()
+    spec   = request.query_params.get('specialization', '').strip()
+    qs = User.objects.filter(role='doctor').select_related('doctor_profile')
+    if wilaya:
+        qs = qs.filter(doctor_profile__wilaya=wilaya)
+    if spec:
+        spec_lower = spec.lower().strip()
+        spec_code  = SPEC_MAP.get(spec_lower, spec_lower)
+        qs = qs.filter(
+            Q(doctor_profile__specialization__iexact=spec_code) |
+            Q(doctor_profile__specialization__icontains=spec_lower) |
+            Q(doctor_profile__specialization__icontains=spec_code)
+        )
     data = []
-    for doc in doctors:
+    for doc in qs:
         try:
-            profile = doc.doctor_profile
+            p = doc.doctor_profile
             data.append({
-                'id':               doc.id,
-                'full_name':        doc.get_full_name(),
-                'specialization':   profile.get_specialization_display(),
-                'wilaya':           profile.get_wilaya_display(),
-                'wilaya_code':      profile.wilaya,
-                'commune':          profile.commune,
-                'bio':              profile.bio,
-                'fee':              float(profile.consultation_fee),
-                'years_experience': profile.years_of_experience,
-                'clinic_address':   profile.clinic_address,
-                'is_available':     profile.is_available,
-                'phone':            doc.phone_number or '',
-                'photo':            request.build_absolute_uri(doc.profile_picture.url) if doc.profile_picture else None,
+                'id': doc.id, 'full_name': doc.get_full_name() or doc.username,
+                'specialization': p.get_specialization_display(),
+                'wilaya': p.get_wilaya_display(), 'wilaya_code': p.wilaya,
+                'commune': p.commune or '', 'bio': p.bio or '',
+                'fee': float(p.consultation_fee or 0),
+                'consultation_fee': float(p.consultation_fee or 0),
+                'years_experience': int(p.years_of_experience or 0),
+                'years_of_experience': int(p.years_of_experience or 0),
+                'clinic_address': p.clinic_address or '',
+                'location_url': p.location_url or p.clinic_address or '',
+                'phone_number': doc.phone_number or '',
+                'is_available': p.is_available,
+                'phone': doc.phone_number or '',
+                'photo': request.build_absolute_uri(doc.profile_picture.url)
+                         if doc.profile_picture else None,
             })
         except Exception:
-            pass
+            continue
     return Response(data)
 
 
-# ── مواعيد المريض ──────────────────────────────────────────
+# ── المواعيد المتاحة لطبيب معين (مع فلترة الوقت الماضي) ───
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_slots(request, doctor_id):
+    now_local = timezone.localtime(timezone.now())
+    today     = now_local.date()
+
+    slots = TimeSlot.objects.filter(
+        doctor_id=doctor_id,
+        is_booked=False,
+        date__gte=today,
+    ).exclude(
+        date=today,
+        start_time__lte=now_local.time()
+    ).order_by('date', 'start_time')
+
+    data = []
+    for s in slots:
+        start = s.start_time.strftime('%H:%M') if s.start_time else ''
+        end   = s.end_time.strftime('%H:%M')   if s.end_time   else ''
+        data.append({
+            'id': s.id, 'date': str(s.date),
+            'time': start, 'start_time': start, 'end_time': end,
+            'display': f'{start} - {end}', 'is_booked': s.is_booked,
+        })
+    return Response(data)
+
+
+# ── مواعيد المريض الحالي ───────────────────────────────────
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_my_appointments(request):
     appointments = Appointment.objects.filter(
-        patient=request.user
-    ).select_related('doctor__doctor_profile').order_by('-date', '-time_slot__start_time')
+        patient=request.user,
+        time_slot__date__gte=timezone.now().date()
+    ).select_related('doctor__doctor_profile', 'time_slot').order_by(
+        'time_slot__date', 'time_slot__start_time')
     data = []
     for apt in appointments:
+        try:
+            spec = apt.doctor.doctor_profile.get_specialization_display()
+        except Exception:
+            spec = ''
+        if apt.time_slot:
+            apt_date  = str(apt.time_slot.date)
+            apt_start = apt.time_slot.start_time.strftime('%H:%M') if apt.time_slot.start_time else ''
+            apt_end   = apt.time_slot.end_time.strftime('%H:%M')   if apt.time_slot.end_time   else ''
+            apt_time  = f'{apt_start} - {apt_end}' if apt_end else apt_start
+        else:
+            apt_date = apt_start = apt_end = apt_time = ''
         data.append({
-             'id':             doc.id,
-             'full_name':      doc.get_full_name(),
-             'specialization': profile.get_specialization_display(),
-             'wilaya':         profile.get_wilaya_display(),
-             'wilaya_code':    profile.wilaya,
-             'commune':        profile.commune,
-              'bio':            profile.bio,
-             'fee':            float(profile.consultation_fee),
-             'years_experience': profile.years_of_experience,
-             'clinic_address': profile.clinic_address,  # نص كامل أو رابط Google Maps
-             'is_available':   profile.is_available,
-             'phone':          doc.phone_number or '',
-             'photo':          request.build_absolute_uri(doc.profile_picture.url) if doc.profile_picture else None,
+            'id': apt.id,
+            'doctor': apt.doctor.get_full_name() or apt.doctor.username,
+            'doctor_name': apt.doctor.get_full_name() or apt.doctor.username,
+            'patient_name': apt.patient.get_full_name() or apt.patient.username,
+            'specialization': spec, 'date': apt_date, 'time': apt_time,
+            'start_time': apt_start, 'end_time': apt_end,
+            'status': apt.status, 'reason': apt.reason or '',
         })
+    return Response(data)
 
+
+# ── مواعيد الطبيب ─────────────────────────────────────────
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_doctor_appointments(request):
+    appointments = Appointment.objects.filter(
+        doctor=request.user,
+        time_slot__date__gte=timezone.now().date()
+    ).select_related('patient', 'time_slot').order_by(
+        'time_slot__date', 'time_slot__start_time')
+    data = []
+    for apt in appointments:
+        if apt.time_slot:
+            apt_date  = str(apt.time_slot.date)
+            apt_start = apt.time_slot.start_time.strftime('%H:%M') if apt.time_slot.start_time else ''
+            apt_end   = apt.time_slot.end_time.strftime('%H:%M')   if apt.time_slot.end_time   else ''
+            apt_time  = f'{apt_start} - {apt_end}' if apt_end else apt_start
+        else:
+            apt_date = apt_start = apt_end = apt_time = ''
+        data.append({
+            'id': apt.id,
+            'doctor_name': apt.doctor.get_full_name() or apt.doctor.username,
+            'patient_name': apt.patient.get_full_name() or apt.patient.username,
+            'date': apt_date, 'time': apt_time,
+            'start_time': apt_start, 'end_time': apt_end,
+            'status': apt.status, 'reason': apt.reason or '',
+        })
     return Response(data)
 
 
@@ -90,34 +228,98 @@ def api_my_appointments(request):
 @permission_classes([IsAuthenticated])
 def api_book_appointment(request):
     doctor_id = request.data.get('doctor_id')
-    slot_id = request.data.get('slot_id')
-    reason = request.data.get('reason', '')
+    slot_id   = request.data.get('slot_id')
+    reason    = request.data.get('reason', '')
     try:
-        doctor = User.objects.get(id=doctor_id, role='doctor')
-        slot = TimeSlot.objects.get(id=slot_id, is_available=True)
-        apt = Appointment.objects.create(
-            patient=request.user,
-            doctor=doctor,
-            time_slot=slot,
-            date=slot.date,
-            reason=reason,
-            status='en_attente',
-        )
-        slot.is_available = False
-        slot.save()
-        return Response({'success': True, 'appointment_id': apt.id})
+        with transaction.atomic():
+            doctor = User.objects.get(id=doctor_id, role='doctor')
+            slot   = TimeSlot.objects.select_for_update().get(id=slot_id, is_booked=False)
+
+            # منع الحجز المكرر
+            already = Appointment.objects.filter(
+                patient=request.user, doctor=doctor,
+                time_slot__date=slot.date,
+            ).exclude(status__in=['refuse', 'annule']).exists()
+            if already:
+                return Response(
+                    {'error': "Vous avez déjà un rendez-vous avec ce médecin ce jour-là. Attendez qu'il soit refusé ou annulé pour réessayer."},
+                    status=400
+                )
+            apt = Appointment.objects.create(
+                patient=request.user, doctor=doctor,
+                time_slot=slot, reason=reason, status='en_attente',
+            )
+            slot.is_booked = True
+            slot.save()
+            return Response({'success': True, 'appointment_id': apt.id})
+    except TimeSlot.DoesNotExist:
+        return Response({'error': "Ce créneau n'est plus disponible."}, status=400)
     except Exception as e:
         return Response({'error': str(e)}, status=400)
 
 
-# ── المواعيد المتاحة ───────────────────────────────────────
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def api_slots(request, doctor_id):
-    slots = TimeSlot.objects.filter(
-        doctor_id=doctor_id,
-        is_available=True,
-        date__gte=timezone.now().date()
-    ).order_by('date', 'start_time')
-    data = [{'id': s.id, 'date': str(s.date), 'time': str(s.start_time)} for s in slots]
-    return Response(data)
+# ── قبول موعد + رفض تلقائي للمتصادمين ────────────────────
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_accept_appointment(request, appointment_id):
+    try:
+        with transaction.atomic():
+            apt = Appointment.objects.get(id=appointment_id)
+            apt.status = 'accepte'
+            apt.save()
+            if apt.time_slot:
+                conflicts = Appointment.objects.filter(
+                    time_slot=apt.time_slot, status='en_attente'
+                ).exclude(id=apt.id)
+                for c in conflicts:
+                    c.status = 'refuse'
+                    c.save()
+            return Response({
+                'success': True, 'status': 'accepte',
+                'message': 'Rendez-vous accepté. Les autres demandes ont été refusées automatiquement.',
+            })
+    except Appointment.DoesNotExist:
+        return Response({'error': 'Rendez-vous introuvable'}, status=404)
+
+
+# ── رفض موعد + تحرير الخانة ───────────────────────────────
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_reject_appointment(request, appointment_id):
+    try:
+        apt = Appointment.objects.get(id=appointment_id)
+        apt.status = 'refuse'
+        if apt.time_slot:
+            apt.time_slot.is_booked = False
+            apt.time_slot.save()
+        apt.save()
+        return Response({
+            'success': True, 'status': 'refuse',
+            'message': 'Rendez-vous refusé. Le créneau est maintenant disponible.',
+        })
+    except Appointment.DoesNotExist:
+        return Response({'error': 'Rendez-vous introuvable'}, status=404)
+
+
+# ── إلغاء موعد (من المريض) ────────────────────────────────
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_cancel_appointment(request, appointment_id):
+    try:
+        apt = Appointment.objects.get(id=appointment_id, patient=request.user)
+        if apt.status in ['accepte', 'en_attente']:
+            apt.status = 'annule'
+            if apt.time_slot:
+                apt.time_slot.is_booked = False
+                apt.time_slot.save()
+            apt.save()
+            return Response({
+                'success': True, 'status': 'annule',
+                'message': 'Rendez-vous annulé. Le créneau a été libéré.',
+            })
+        return Response({
+            'error': 'Ce rendez-vous ne peut pas être annulé.',
+            'current_status': apt.status,
+        }, status=400)
+    except Appointment.DoesNotExist:
+        return Response({'error': 'Rendez-vous introuvable'}, status=404)

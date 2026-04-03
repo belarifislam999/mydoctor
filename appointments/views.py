@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
+from django.db import transaction  # مضافة لضمان عمل الحجز المكرر
+from django.db.models import Q  
 from datetime import timedelta, datetime
 from .models import TimeSlot, Appointment, Prescription, Review
 from .forms import TimeSlotForm, BulkTimeSlotForm, AppointmentBookingForm, AppointmentNotesForm, PrescriptionForm, ReviewForm
@@ -12,7 +14,7 @@ def home(request):
     from accounts.models import User
     from django.conf import settings
     ads_slider  = Advertisement.objects.filter(is_active=True, position='hero').order_by('order')
-    ads_top     = Advertisement.objects.filter(is_active=True, position='top')
+    ads_top      = Advertisement.objects.filter(is_active=True, position='top')
     ads_bottom  = Advertisement.objects.filter(is_active=True, position='bottom')
     return render(request, 'home.html', {
         'total_doctors':      User.objects.filter(role='doctor').count(),
@@ -55,7 +57,7 @@ def doctor_dashboard(request):
         'todays_appointments': todays_appts,
         'pending_requests':    pending,
         'upcoming_slots':      upcoming_count,
-        'total_completed':     completed,
+        'total_completed':      completed,
         'total_patients':      total_patients,
         'next_appointment':    next_appt,
         'today': today,
@@ -129,14 +131,58 @@ def delete_slot(request, slot_id):
 def doctor_appointments(request):
     if not request.user.is_doctor():
         return redirect('patient_dashboard')
-    appointments = Appointment.objects.filter(doctor=request.user).select_related('patient', 'time_slot').order_by('-time_slot__date')
+
+    now_local   = timezone.localtime(timezone.now())
+    today       = now_local.date()
+    now_time    = now_local.time()
+
     status_filter = request.GET.get('status', '')
+    q             = request.GET.get('q', '').strip()
+    date_filter   = request.GET.get('date_filter', '').strip()
+
+    appointments = Appointment.objects.filter(
+        doctor=request.user
+    ).select_related('patient', 'time_slot').order_by('-time_slot__date', '-time_slot__start_time')
+
+    # ── فلتر الحالة ──────────────────────────────────────
     if status_filter:
         appointments = appointments.filter(status=status_filter)
+
+    # ── تنظيف تبويب الانتظار: إخفاء المواعيد المنتهية ───
+    if status_filter == 'en_attente':
+        appointments = appointments.filter(
+            time_slot__date__gte=today
+        ).exclude(
+            time_slot__date=today,
+            time_slot__start_time__lte=now_time
+        )
+
+    # ── فلتر البحث (اسم المريض أو البريد) ───────────────
+    if q:
+        appointments = appointments.filter(
+            Q(patient__first_name__icontains=q) |
+            Q(patient__last_name__icontains=q)  |
+            Q(patient__email__icontains=q)       |
+            Q(patient__username__icontains=q)
+        )
+
+    # ── فلتر التاريخ ──────────────────────────────────────
+    if date_filter:
+        try:
+            from datetime import date as date_type
+            from datetime import datetime as dt
+            filter_date = dt.strptime(date_filter, '%Y-%m-%d').date()
+            appointments = appointments.filter(time_slot__date=filter_date)
+        except ValueError:
+            pass
+
     return render(request, 'appointments/doctor_appointments.html', {
-        'appointments': appointments,
-        'status_filter': status_filter,
+        'appointments':   appointments,
+        'status_filter':  status_filter,
         'status_choices': Appointment.STATUS_CHOICES,
+        'q':              q,
+        'date_filter':    date_filter,
+        'today':          today,
     })
 
 
@@ -195,8 +241,6 @@ def patient_dashboard(request):
 
 @login_required
 def book_appointment(request, slot_id):
-    from django.db import transaction
-
     slot = get_object_or_404(TimeSlot, id=slot_id)
 
     if not request.user.is_patient():
@@ -231,7 +275,7 @@ def book_appointment(request, slot_id):
                     slot_locked = TimeSlot.objects.select_for_update().get(id=slot_id)
 
                     if slot_locked.is_booked or Appointment.objects.filter(time_slot=slot_locked).exists():
-                        messages.error(request, 'Désolé, ce créneau vient d\'être réservé. Choisissez un autre.')
+                        messages.error(request, 'Désolé, ce créneau vient d\'être réservé.')
                         return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
 
                     appt = form.save(commit=False)
@@ -244,11 +288,11 @@ def book_appointment(request, slot_id):
                     slot_locked.is_booked = True
                     slot_locked.save()
 
-                messages.success(request, f'Rendez-vous réservé avec Dr. {slot.doctor.last_name}. En attente de confirmation.')
+                messages.success(request, f'Rendez-vous réservé avec Dr. {slot.doctor.last_name}.')
                 return redirect('patient_dashboard')
 
             except Exception:
-                messages.error(request, 'Une erreur est survenue. Veuillez réessayer.')
+                messages.error(request, 'Une erreur est survenue.')
                 return redirect('doctor_detail', doctor_id=slot.doctor.doctor_profile.id)
     else:
         form = AppointmentBookingForm()
@@ -300,3 +344,39 @@ def appointment_detail_patient(request, appointment_id):
         'appointment': appointment, 'prescription': prescription,
         'review': existing_review, 'review_form': review_form,
     })
+
+# ─── الدوال الجديدة لحل مشكلة توقف الموقع ───────────────────────
+
+@login_required
+def accept_appointment(request, appointment_id):
+    appointment = get_object_or_404(Appointment, id=appointment_id, doctor=request.user)
+    appointment.status = 'accepte'
+    appointment.save()
+    # رفض البقية تلقائياً في نفس الساعة
+    Appointment.objects.filter(time_slot=appointment.time_slot).exclude(id=appointment.id).update(status='refuse')
+    messages.success(request, 'Rendez-vous accepté.')
+    return redirect('doctor_dashboard')
+
+@login_required
+def refuse_appointment(request, appointment_id):
+    appointment = get_object_or_404(Appointment, id=appointment_id, doctor=request.user)
+    appointment.status = 'refuse'
+    appointment.save()
+    # تفريغ الموعد ليتمكن مريض آخر من الحجز
+    slot = appointment.time_slot
+    slot.is_booked = False
+    slot.save()
+    messages.info(request, 'Rendez-vous refusé et créneau libéré.')
+    return redirect('doctor_dashboard')
+
+@login_required
+def cancel_appointment(request, appointment_id):
+    appointment = get_object_or_404(Appointment, id=appointment_id, patient=request.user)
+    appointment.status = 'annule'
+    appointment.save()
+    # تفريغ الموعد
+    slot = appointment.time_slot
+    slot.is_booked = False
+    slot.save()
+    messages.success(request, 'Rendez-vous annulé.')
+    return redirect('patient_dashboard')
