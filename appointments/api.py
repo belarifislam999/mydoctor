@@ -75,17 +75,27 @@ def api_login(request):
 
 # ── خريطة التخصصات ────────────────────────────────────────
 SPEC_MAP = {
-    'médecin généraliste': 'generaliste', 'medecin generaliste': 'generaliste',
-    'généraliste': 'generaliste', 'generaliste': 'generaliste',
-    'cardiologie': 'cardiologie', 'cardiologue': 'cardiologie',
-    'dermatologie': 'dermatologie', 'dermatologue': 'dermatologie',
-    'neurologie': 'neurologie', 'neurologue': 'neurologie',
-    'orthopédie': 'orthopedie', 'orthopediste': 'orthopedie',
-    'pédiatrie': 'pediatrie', 'pediatrie': 'pediatrie',
-    'psychiatrie': 'psychiatrie', 'gynécologie': 'gynecologie',
-    'gynecologie': 'gynecologie', 'ophtalmologie': 'ophtalmologie',
-    'orl': 'orl', 'radiologie': 'radiologie', 'oncologie': 'oncologie',
-    'urologie': 'urologie', 'dentiste': 'dentiste', 'autre': 'autre',
+    'gastro-entérologie': 'gastro', 'gastroenterologie': 'gastro',
+    'gastro': 'gastro', 'gastroentérologue': 'gastro',
+    'endocrinologie': 'endocrino', 'endocrino': 'endocrino',
+    'diabétologie': 'endocrino', 'diabetologie': 'endocrino',
+    'endocrinologie - diabétologie': 'endocrino',
+    'rhumatologie': 'rhumato', 'rhumato': 'rhumato',
+    'rhumatologue': 'rhumato',
+    'pneumologie': 'pneumo', 'pneumo': 'pneumo',
+    'pneumologue': 'pneumo',
+    'néphrologie': 'nephro', 'nephrologie': 'nephro',
+    'nephro': 'nephro', 'néphrologue': 'nephro',
+    'chirurgie générale': 'chir_gen', 'chirurgie generale': 'chir_gen',
+    'chir_gen': 'chir_gen', 'chirurgien': 'chir_gen',
+    'médecine interne': 'med_interne', 'medecine interne': 'med_interne',
+    'med_interne': 'med_interne', 'interniste': 'med_interne',
+    'nutrition': 'nutrition', 'nutritionniste': 'nutrition',
+    'diététique': 'nutrition',
+    'psychologie': 'psychologie', 'psychologue': 'psychologie',
+    'kinésithérapie': 'kine', 'kinesitherapie': 'kine',
+    'kine': 'kine', 'kinésithérapeute': 'kine',
+    'rééducation': 'kine', 'reeducation': 'kine',
 }
 
 
