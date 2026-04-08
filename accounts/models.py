@@ -1,6 +1,11 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import RegexValidator
+from django.conf import settings
+import random
+import string
+from django.utils import timezone
+from datetime import timedelta
 
 # ── 69 Wilayas d'Algérie ─────────────────────────────────────
 WILAYAS = [
@@ -183,3 +188,34 @@ class Advertisement(models.Model):
 
     def __str__(self):
         return f"{self.title} [{self.get_position_display()}]"
+
+
+class PasswordResetOTP(models.Model):
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='otps')
+    code       = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used    = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = 'OTP Reset'
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() < self.expires_at
+
+    @classmethod
+    def generate_for(cls, user):
+        # حذف OTPs القديمة لنفس المستخدم
+        cls.objects.filter(user=user).delete()
+        code = ''.join(random.choices(string.digits, k=6))
+        return cls.objects.create(user=user, code=code,
+                                   expires_at=timezone.now() + timedelta(minutes=10))
+
+    def __str__(self):
+        return f"OTP {self.code} pour {self.user.email}"

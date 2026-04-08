@@ -9,6 +9,8 @@ from accounts.models import User, DoctorProfile
 from .models import Appointment, TimeSlot
 from django.utils import timezone
 from django.db.models import Q
+from django.conf import settings  # هذا السطر كان ناقصاً ويسبب توقف الملف
+
 
 
 # ── تسجيل حساب جديد (مريض) ────────────────────────────────
@@ -333,3 +335,108 @@ def api_cancel_appointment(request, appointment_id):
         }, status=400)
     except Appointment.DoesNotExist:
         return Response({'error': 'Rendez-vous introuvable'}, status=404)
+
+
+
+# ── API: Demande OTP ──────────────────────────────────────────
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_request_otp(request):
+    email = request.data.get('email', '').strip()
+    if not email:
+        return Response({'error': 'Email requis'}, status=400)
+    try:
+        from accounts.models import User, PasswordResetOTP
+        from django.core.mail import send_mail
+        user = User.objects.get(email=email)
+        otp  = PasswordResetOTP.generate_for(user)
+
+        send_mail(
+            subject='My Doctor — Code de réinitialisation',
+            message=f'Votre code est : {otp.code}\nValable 10 minutes.\n\nرمزك هو: {otp.code}\nصالح لمدة 10 دقائق.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        return Response({'message': f'Code envoyé à {email}'})
+    except User.DoesNotExist:
+        # سبب أمني: لا نكشف إن كان الإيميل موجوداً
+        return Response({'message': f'Si un compte existe pour {email}, un code a été envoyé.'})
+    except Exception as e:
+        return Response({'error': f'Erreur envoi email: {str(e)}'}, status=500)
+
+
+# ── API: Vérification OTP ─────────────────────────────────────
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_verify_otp(request):
+    email = request.data.get('email', '').strip()
+    code  = request.data.get('code', '').strip()
+    if not email or not code:
+        return Response({'error': 'Email et code requis'}, status=400)
+    try:
+        from accounts.models import User, PasswordResetOTP
+        user = User.objects.get(email=email)
+        otp  = PasswordResetOTP.objects.filter(user=user, code=code).last()
+        if otp and otp.is_valid():
+            # Ne pas marquer comme utilisé ici — on attend le reset
+            return Response({'valid': True, 'message': 'Code valide'})
+        return Response({'valid': False, 'error': 'Code invalide ou expiré'}, status=400)
+    except User.DoesNotExist:
+        return Response({'error': 'Compte introuvable'}, status=404)
+
+
+# ── API: Réinitialisation du mot de passe ─────────────────────
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def api_reset_password(request):
+    email     = request.data.get('email', '').strip()
+    code      = request.data.get('code', '').strip()
+    password  = request.data.get('password', '')
+    if not all([email, code, password]):
+        return Response({'error': 'email, code et password requis'}, status=400)
+    if len(password) < 6:
+        return Response({'error': 'Le mot de passe doit contenir au moins 6 caractères'}, status=400)
+    try:
+        from accounts.models import User, PasswordResetOTP
+        user = User.objects.get(email=email)
+        otp  = PasswordResetOTP.objects.filter(user=user, code=code).last()
+        if not otp or not otp.is_valid():
+            return Response({'error': 'Code invalide ou expiré'}, status=400)
+        user.set_password(password)
+        user.save()
+        otp.is_used = True
+        otp.save()
+        # Générer nouveau token
+        from rest_framework.authtoken.models import Token
+        Token.objects.filter(user=user).delete()
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({
+            'success': True,
+            'message': 'Mot de passe réinitialisé avec succès',
+            'token': token.key,
+        })
+    except User.DoesNotExist:
+        return Response({'error': 'Compte introuvable'}, status=404)
+
+
+# ── API: Changement mot de passe (connecté) ───────────────────
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_change_password(request):
+    current  = request.data.get('current_password', '')
+    new_pass = request.data.get('new_password', '')
+    if not request.user.check_password(current):
+        return Response({'error': 'Mot de passe actuel incorrect'}, status=400)
+    if len(new_pass) < 6:
+        return Response({'error': 'Au moins 6 caractères requis'}, status=400)
+    request.user.set_password(new_pass)
+    request.user.save()
+    from rest_framework.authtoken.models import Token
+    Token.objects.filter(user=request.user).delete()
+    token, _ = Token.objects.get_or_create(user=request.user)
+    return Response({
+        'success': True,
+        'message': 'Mot de passe modifié',
+        'token': token.key,
+    })
